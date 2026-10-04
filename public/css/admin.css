@@ -1,0 +1,31 @@
+.admin { background: var(--soft); min-height: 100vh; }
+.admin-main { padding-top: 28px; padding-bottom: 60px; }
+.admin-actions { display: flex; gap: 8px; margin-left: auto; }
+.login { max-width: 400px; margin: 60px auto; }
+.tabs { display: flex; gap: 6px; margin: 18px 0; flex-wrap: wrap; }
+.tab { border: 2px solid var(--line); background: #fff; border-radius: 999px; padding: 8px 18px; font: inherit; font-weight: 700; cursor: pointer; color: var(--navy); }
+.tab[aria-selected="true"] { background: var(--navy); color: var(--gold); border-color: var(--navy); }
+.tab .count { background: var(--gold); color: var(--navy); border-radius: 999px; padding: 0 8px; margin-left: 6px; font-size: 0.8rem; }
+.req-list { display: grid; gap: 12px; }
+.rq { background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.rq > summary { cursor: pointer; padding: 14px 18px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; list-style: none; }
+.rq > summary::-webkit-details-marker { display: none; }
+.rq .who { font-weight: 800; font-size: 1.05rem; }
+.rq .sub { color: var(--muted); font-size: 0.9rem; grid-column: 1; }
+.rq .pills { grid-row: 1 / span 2; grid-column: 2; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.req-body { padding: 4px 18px 18px; border-top: 1px solid var(--line); display: grid; gap: 14px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.box { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: #fbfcff; }
+.box h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+.box ul { margin: 0; padding-left: 18px; }
+.photos { display: flex; gap: 8px; flex-wrap: wrap; }
+.photos img { width: 110px; height: 110px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.slot-form .row { margin-bottom: 8px; }
+.slot-form .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.pill-new { background: var(--gold); color: var(--navy); }
+.status-pill.small { font-size: 0.78rem; padding: 2px 10px; }
+.table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; }
+.table th, .table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.table th { background: var(--navy); color: #fff; font-size: 0.85rem; }
+.table-wrap { overflow-x: auto; }
+.empty { color: var(--muted); padding: 24px; text-align: center; background: #fff; border-radius: 12px; }

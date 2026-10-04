@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{shortName}} | Soft Washing &amp; Pressure Washing</title>
+  <meta name="description" content="Professional soft washing and pressure washing for homes, concrete surfaces, and commercial properties. Build a free quote online. Call {{phone}}.">
+  <meta name="theme-color" content="#0b1437">
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header" id="top">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="{{name}} home">
+        <svg class="brand-mark" aria-hidden="true"><use href="#i-logo"/></svg>
+        <span class="brand-text"><strong>Tedrick</strong> Mobile Pressure Washing</span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Main">
+        <a href="#services">Services</a>
+        <a href="#gallery">Before &amp; After</a>
+        <a href="#quote">Build My Quote</a>
+        <a href="#booking">Booking</a>
+      </nav>
+      <a class="btn btn-gold btn-sm header-call" href="tel:{{phoneTel}}"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg><span>{{phone}}</span></a>
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow">{{tagline}}</p>
+          <h1>Refresh Your Property. Restore Your Curb Appeal.</h1>
+          <p class="lead">Professional soft washing and pressure washing for homes, concrete surfaces, and commercial properties.</p>
+          <div class="hero-actions">
+            <a class="btn btn-gold btn-lg" href="#quote" data-start-quote>Build My Quote</a>
+            <a class="btn btn-outline btn-lg" href="#gallery">View Before &amp; After</a>
+          </div>
+          <ul class="chips" aria-label="Highlights">
+            <li>Homes &amp; commercial</li>
+            <li>Free personalized quotes</li>
+            <li>{{ministerDiscount}}</li>
+          </ul>
+        </div>
+        <figure class="hero-photos" aria-label="Before and after photo">
+          <div class="hero-photo"><img src="/img/curb-before.jpg" alt="Dirty, stained curb ledge before cleaning" width="250" height="150"><figcaption>Before</figcaption></div>
+          <div class="hero-photo"><img src="/img/curb-after-1.jpg" alt="Clean light-gray curb ledge after cleaning" width="260" height="170"><figcaption class="after">After</figcaption></div>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section gallery" id="gallery" aria-labelledby="gallery-title">
+      <div class="container">
+        <div class="section-head split">
+          <div>
+            <h2 id="gallery-title">Before &amp; After Projects</h2>
+            <p class="muted">Tap a project to see the full before and after photos.</p>
+          </div>
+          <div class="arrows">
+            <button class="icon-btn" id="gal-prev" type="button" aria-label="Scroll projects left"><svg class="icon" aria-hidden="true"><use href="#i-left"/></svg></button>
+            <button class="icon-btn" id="gal-next" type="button" aria-label="Scroll projects right"><svg class="icon" aria-hidden="true"><use href="#i-right"/></svg></button>
+          </div>
+        </div>
+        <div class="gallery-track" id="gallery-track" role="list" tabindex="0" aria-label="Project gallery. Scroll horizontally."></div>
+      </div>
+    </section>
+
+    <section class="section alt" id="services" aria-labelledby="services-title">
+      <div class="container">
+        <div class="section-head center">
+          <h2 id="services-title">Services</h2>
+          <p class="muted">Every surface is different, so we choose the cleaning method to suit it: gentle soft washing for siding and roofs, pressure washing for hard surfaces like concrete.</p>
+        </div>
+        <div class="card-grid" id="service-grid"></div>
+      </div>
+    </section>
+
+    <section class="section" id="quote" aria-labelledby="quote-title">
+      <div class="container">
+        <div class="section-head center">
+          <h2 id="quote-title">Build My Quote</h2>
+          <p class="muted">Four quick steps. It's free, and no payment is needed to request a quote.</p>
+        </div>
+        <ol class="progress" id="progress" aria-label="Quote progress"></ol>
+        <div class="quote-layout">
+          <div class="quote-panel" id="quote-panel" aria-live="polite"></div>
+          <details class="quote-summary" id="quote-summary">
+            <summary>Your quote summary</summary>
+            <div id="summary-body"></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt" id="booking" aria-labelledby="booking-title">
+      <div class="container narrow">
+        <div class="section-head center">
+          <h2 id="booking-title">Request a Booking</h2>
+          <p class="muted">Pick a preferred date and time window. Your request is reviewed by the owner and is not confirmed until it is approved.</p>
+        </div>
+        <div class="card booking-card" id="booking-panel" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="section" id="about" aria-labelledby="about-title">
+      <div class="container narrow">
+        <div class="section-head center"><h2 id="about-title">About {{shortName}}</h2></div>
+        <div class="card about-card">
+          <p><strong>{{owner}}</strong> is the owner of {{name}}, offering power washing and surface cleaning for homes, driveways, sidewalks, and commercial properties.</p>
+          <p class="values"><span>Clean Homes</span><span>Clean Businesses</span><span>Stronger Communities</span></p>
+          <p>Reasonable prices and great service. {{ministerDiscount}}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt" id="faq" aria-labelledby="faq-title">
+      <div class="container narrow">
+        <div class="section-head center"><h2 id="faq-title">Frequently Asked Questions</h2></div>
+        <div class="faq">
+          <details><summary>What's the difference between soft washing and pressure washing?</summary>
+            <p>Pressure washing uses high-pressure water and suits hard surfaces like concrete driveways and sidewalks. Soft washing uses low pressure with cleaning solutions, which is gentler on siding and roofs. We pick the method based on your surface.</p></details>
+          <details><summary>Can I request a quote if I don't know my square footage?</summary>
+            <p>Yes. Choose "I'm not sure" for any service and add photos if you can. We'll review your details and follow up to confirm measurements before a final price.</p></details>
+          <details><summary>How does booking approval work?</summary>
+            <p>After you send a quote request, you can choose a preferred date and time window. That's a request only: it shows as "Pending owner approval." The owner can accept it, decline it, or propose a different time. You're confirmed only after acceptance, and a confirmed time is held for you.</p></details>
+          <details><summary>Can the final quote change after inspection?</summary>
+            <p>Yes. Online estimates depend on the measurements and details you provide. The final price is confirmed after we review your property, measurements, and surface condition.</p></details>
+          <details><summary>What payment methods do you accept?</summary>
+            <p>We accept {{payments}}. You don't pay anything to request a quote or a booking.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta" id="contact" aria-labelledby="cta-title">
+      <div class="container cta-inner">
+        <h2 id="cta-title">Ready for a Cleaner Property?</h2>
+        <p class="lead">Get a free personalized quote today.</p>
+        <div class="hero-actions center">
+          <a class="btn btn-gold btn-lg" href="#quote" data-start-quote>Build My Quote</a>
+          <a class="btn btn-outline btn-lg" href="#booking">Request a Booking</a>
+          <a class="btn btn-outline btn-lg" href="tel:{{phoneTel}}"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg>Call {{phone}}</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <p class="footer-name">{{name}}</p>
+        <p>{{tagline}}</p>
+      </div>
+      <div>
+        <p><a class="footer-phone" href="tel:{{phoneTel}}">{{phone}}</a></p>
+        <p>Now accepting: {{payments}}</p>
+      </div>
+    </div>
+    <div class="container footer-legal">&copy; {{year}} {{name}} · <a href="/admin/">Owner login</a></div>
+  </footer>
+
+  <div class="mobile-bar" role="navigation" aria-label="Quick actions">
+    <a class="btn btn-outline" href="tel:{{phoneTel}}"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg>Call Now</a>
+    <a class="btn btn-gold" href="#quote" data-start-quote>Get a Quote</a>
+  </div>
+
+  <dialog class="viewer" id="viewer" aria-labelledby="viewer-title">
+    <div class="viewer-head">
+      <div>
+        <p class="viewer-cat" id="viewer-cat"></p>
+        <h3 id="viewer-title"></h3>
+      </div>
+      <button class="icon-btn close" id="viewer-close" type="button" aria-label="Close viewer"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="viewer-body" id="viewer-body"></div>
+    <p class="viewer-desc" id="viewer-desc"></p>
+    <div class="viewer-foot">
+      <button class="btn btn-ghost" id="viewer-prev" type="button"><svg class="icon" aria-hidden="true"><use href="#i-left"/></svg>Previous</button>
+      <span class="viewer-count" id="viewer-count"></span>
+      <button class="btn btn-ghost" id="viewer-next" type="button">Next<svg class="icon" aria-hidden="true"><use href="#i-right"/></svg></button>
+    </div>
+    <a class="btn btn-gold viewer-quote" href="#quote" data-start-quote>Get a quote like this</a>
+  </dialog>
+
+  <svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-logo" viewBox="0 0 32 32"><path d="M16 2l12 4v9c0 7-5 12.5-12 15C9 27.500 4 22 4 15V6z" fill="#111c4d" stroke="#f5c518" stroke-width="2" stroke-linejoin="round"/><path d="M14 8h4v4h4v4h-4v8h-4v-8h-4v-4h4z" fill="#f5c518"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.500 1.500a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.500" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.500" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.500" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.500l4.500 4.500L19 7.500" fill="none" stroke="currentColor" stroke-width="2.500" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="1.500" fill="currentColor"/><path d="M4 18l5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></g></symbol>
+    <symbol id="i-roof" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12L12 4l10 8"/><path d="M5 10.500V20h14v-9.500"/><path d="M8 14h8M8 17h8"/></g></symbol>
+    <symbol id="i-driveway" viewBox="0 0 24 24"><path d="M8 3L4 21M16 3l4 18M12 4v3M12 11v3M12 18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-sidewalk" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v18"/></g></symbol>
+    <symbol id="i-deck" viewBox="0 0 24 24"><path d="M3 9h18M3 14h18M3 19h18M6 5v14M18 5v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-fence" viewBox="0 0 24 24"><path d="M5 21V8l2-3 2 3v13M11 21V8l2-3 2 3v13M17 21V8l2-3 2 3v13M3 12h18M3 17h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2M10 21v-3h4v3"/></g></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l1.800 5.200L19 10l-5.200 1.800L12 17l-1.800-5.200L5 10l5.200-1.800z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></g></symbol>
+  </svg>
+
+  <script type="application/json" id="site-config">{{configJson}}</script>
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

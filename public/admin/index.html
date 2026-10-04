@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Owner Dashboard | {{shortName}}</title>
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/admin/"><svg class="brand-mark" aria-hidden="true"><use href="#i-logo"/></svg><span class="brand-text"><strong>Owner Dashboard</strong>{{shortName}}</span></a>
+      <div class="admin-actions hidden" id="admin-actions">
+        <a class="btn btn-outline btn-sm" href="/" target="_blank" rel="noopener">View site</a>
+        <button class="btn btn-gold btn-sm" id="refresh" type="button">Refresh</button>
+        <button class="btn btn-outline btn-sm" id="logout" type="button">Log out</button>
+      </div>
+    </div>
+  </header>
+  <main class="container admin-main" id="app" aria-live="polite"></main>
+
+  <svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-logo" viewBox="0 0 32 32"><path d="M16 2l12 4v9c0 7-5 12.5-12 15C9 27.5 4 22 4 15V6z" fill="#111c4d" stroke="#f5c518" stroke-width="2" stroke-linejoin="round"/><path d="M14 8h4v4h4v4h-4v8h-4v-8h-4v-4h4z" fill="#f5c518"/></symbol>
+  </svg>
+  <script type="application/json" id="site-config">{{configJson}}</script>
+  <script type="module" src="/js/admin.js"></script>
+</body>
+</html>
