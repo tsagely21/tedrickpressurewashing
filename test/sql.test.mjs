@@ -94,7 +94,7 @@ test('customers can look up only their own request by its private token', async 
   const r = await anon('get_request', { p_token: q.token });
   assert.equal(r.ref, q.ref);
   assert.equal(r.booking, null);
-  await rejects(anon('get_request', { p_token: 'wrong' }), /could not find/i, 'P0002');
+  await rejects(anon('get_request', { p_token: 'wrong' }), /could not find/i, 'PT404');
 });
 
 test('availability: tomorrow onward, Sundays closed, only booleans (no customer data)', async () => {

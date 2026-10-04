@@ -163,7 +163,7 @@ declare b bookings;
 begin
   perform pg_advisory_xact_lock(7001);
   select * into b from bookings where id = p_id for update;
-  if not found then perform fail('Booking not found.', null, 'P0002'); end if;
+  if not found then perform fail('Booking not found.', null, 'PT404'); end if;
   if b.status not in ('pending', 'proposed') then
     perform fail('This request is already ' || b.status || '.');
   end if;
@@ -318,7 +318,7 @@ returns void language plpgsql security definer set search_path = public as $$
 declare q quotes; f jsonb;
 begin
   select * into q from quotes where token = p_token;
-  if not found then perform fail('We could not find that request.', null, 'P0002'); end if;
+  if not found then perform fail('We could not find that request.', null, 'PT404'); end if;
   if jsonb_typeof(p_files) <> 'array' or jsonb_array_length(p_files) > 8 then perform fail('You can upload up to 8 photos.', 'photos'); end if;
   for f in select value from jsonb_array_elements(p_files) loop
     if (f ->> 'path') !~ ('^' || q.id::text || '/[1-8]\.(jpg|png|webp)$') then perform fail('Invalid photo.', 'photos'); end if;
@@ -334,7 +334,7 @@ language plpgsql stable security definer set search_path = public as $$
 declare q quotes; b bookings;
 begin
   select * into q from quotes where token = p_token;
-  if not found then perform fail('We could not find that request.', null, 'P0002'); end if;
+  if not found then perform fail('We could not find that request.', null, 'PT404'); end if;
   select * into b from bookings where quote_id = q.id order by created_at desc, id limit 1;
   return jsonb_build_object('ref', q.ref, 'name', q.data -> 'contact' ->> 'name', 'items', q.data -> 'items',
     'booking', case when b.id is null then null else booking_json(b) end);
@@ -346,7 +346,7 @@ declare q quotes; b bookings; v_ok boolean;
 begin
   perform pg_advisory_xact_lock(7001);
   select * into q from quotes where token = p_token;
-  if not found then perform fail('We could not find that quote request.', null, 'P0002'); end if;
+  if not found then perform fail('We could not find that quote request.', null, 'PT404'); end if;
   if p_date is null or not exists (select 1 from jsonb_array_elements(sched() -> 'windows') x where x ->> 'id' = p_window) then
     perform fail('Choose a date and time window.');
   end if;
@@ -365,9 +365,9 @@ language plpgsql security definer set search_path = public as $$
 declare q quotes; b bookings;
 begin
   select * into q from quotes where token = p_token;
-  if not found then perform fail('No booking request found.', null, 'P0002'); end if;
+  if not found then perform fail('No booking request found.', null, 'PT404'); end if;
   select * into b from bookings where quote_id = q.id order by created_at desc, id limit 1 for update;
-  if not found then perform fail('No booking request found.', null, 'P0002'); end if;
+  if not found then perform fail('No booking request found.', null, 'PT404'); end if;
   if b.status not in ('pending', 'proposed') then
     perform fail('Only a pending request can be cancelled online. Please call us to change a confirmed appointment.');
   end if;
@@ -380,7 +380,7 @@ language plpgsql security definer set search_path = public as $$
 declare q quotes; b bookings; result jsonb;
 begin
   select * into q from quotes where token = p_token;
-  if not found then perform fail('No booking request found.', null, 'P0002'); end if;
+  if not found then perform fail('No booking request found.', null, 'PT404'); end if;
   select * into b from bookings where quote_id = q.id order by created_at desc, id limit 1;
   if not found or b.status <> 'proposed' then perform fail('There is no proposed time to respond to.'); end if;
   if p_action = 'accept' then
@@ -450,7 +450,7 @@ begin
   if p_action not in ('accept', 'propose', 'decline', 'cancel') then perform fail('Unknown action.'); end if;
   perform pg_advisory_xact_lock(7001);
   select * into b from bookings where id = p_id for update;
-  if not found then perform fail('Booking not found.', null, 'P0002'); end if;
+  if not found then perform fail('Booking not found.', null, 'PT404'); end if;
 
   if p_action in ('accept', 'propose') then
     if coalesce(p_slot ->> 'date', '') <> '' then

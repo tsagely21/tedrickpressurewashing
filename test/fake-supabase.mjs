@@ -47,7 +47,7 @@ const server = createServer(async (req, res) => {
         return json(res, 200, out === undefined ? null : out);
       } catch (err) {
         if (/does not exist/.test(err.message) && err.code === '42883') return json(res, 404, { code: 'PGRST202', message: err.message });
-        const status = err.code === '42501' ? (role === 'anon' ? 401 : 403) : 400;
+        const status = err.code === '42501' ? (role === 'anon' ? 401 : 403) : err.code === 'PT404' ? 404 : 400;
         return json(res, status, { code: err.code, message: err.message, details: err.detail || null, hint: null });
       }
     }

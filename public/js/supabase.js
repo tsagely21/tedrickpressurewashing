@@ -19,7 +19,7 @@ const toSession = (d) => ({ access_token: d.access_token, refresh_token: d.refre
 
 function toApiError(status, data) {
   if (data?.code === 'P0001') return new ApiError(data.message, 400, data.details || null);
-  if (data?.code === 'P0002') return new ApiError(data.message, 404);
+  if (['PT404', 'P0002'].includes(data?.code)) return new ApiError(data.message, 404);
   if (data?.code === '42501' || status === 403) return new ApiError('Not authorized.', 403);
   if (status === 401 || ['PGRST301', 'PGRST303'].includes(data?.code)) return new ApiError('Please log in.', 401);
   console.error('Supabase error', status, data);
