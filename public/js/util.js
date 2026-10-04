@@ -41,17 +41,5 @@ export class ApiError extends Error {
   }
 }
 
-export async function api(path, { method = 'GET', body } = {}) {
-  let res;
-  try {
-    res = await fetch(path, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
-  } catch {
-    throw new ApiError('We could not reach the server. Check your connection, or call us to complete your request.', 0);
-  }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(data.error || 'Something went wrong. Please try again.', res.status, data.field);
-  return data;
-}
-
 export const spinner = () => h('span', { class: 'spinner', role: 'status', 'aria-label': 'Loading' });
 export const notice = (kind, text) => h('div', { class: `notice ${kind}`, role: kind === 'err' ? 'alert' : 'status' }, h('p', null, text));

@@ -1,18 +1,32 @@
-import { CONFIG, $, h, api, spinner, notice } from './util.js';
+import { CONFIG, $, h, spinner, notice } from './util.js';
+import { rpc, signIn, signOut, hasSession, signedUrls, removePhotos } from './supabase.js';
 import { fmtDate, fmtRange, fromMin } from './shared/dates.js';
-import { money } from './shared/pricing.js';
+import { estimate, money } from './shared/pricing.js';
 
 const app = $('#app');
-const S = { data: null, tab: 'requests', filter: 'attention', message: null, busy: null };
+const S = { data: null, urls: {}, tab: 'requests', filter: 'attention', message: null, busy: false };
+const own = (fn, args) => rpc(fn, args, { auth: true }); // owner calls carry the login token
 const svcLabel = (id) => CONFIG.services.find((s) => s.id === id)?.label || id;
 const svcDef = (id) => CONFIG.services.find((s) => s.id === id);
 const winDef = (id) => CONFIG.scheduling.windows.find((w) => w.id === id);
 const slotText = (s) => `${fmtDate(s.date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}, ${s.fullDay ? 'Full day' : fmtRange(s.start, s.end)}`;
 const LABELS = { pending: 'Pending approval', proposed: 'Proposed – awaiting customer', confirmed: 'Confirmed', declined: 'Declined', cancelled: 'Cancelled' };
+// Order-insensitive JSON, to compare scheduling settings in the database with the site config.
+const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1))) : x));
 
 async function load() {
+  if (!hasSession()) return loginView();
   try {
-    S.data = await api('/api/admin/overview');
+    if (!(await own('is_owner', {}))) return notOwnerView();
+    let data = await own('owner_overview', {});
+    // Keep the database's scheduling settings in step with config/site.config.json.
+    if (canon(data.scheduling) !== canon(CONFIG.scheduling)) {
+      await own('owner_sync_settings', { p_scheduling: CONFIG.scheduling });
+      data = await own('owner_overview', {});
+      S.message = S.message || notice('info', 'Scheduling settings were updated from the site configuration.');
+    }
+    S.data = data;
+    S.urls = await signedUrls(data.quotes.flatMap((q) => q.photos.map((p) => p.path))).catch(() => ({}));
     $('#admin-actions').classList.remove('hidden');
     draw();
   } catch (err) {
@@ -23,28 +37,37 @@ async function load() {
 }
 
 function loginView(error) {
+  $('#admin-actions').classList.add('hidden');
+  const email = h('input', { id: 'email', type: 'email', autocomplete: 'username', required: true });
   const pw = h('input', { id: 'pw', type: 'password', autocomplete: 'current-password', required: true });
   const form = h('form', { class: 'card login', onSubmit: async (e) => {
     e.preventDefault();
-    try { await api('/api/admin/login', { method: 'POST', body: { password: pw.value } }); await load(); }
+    try { await signIn(email.value.trim(), pw.value); await load(); }
     catch (err) { loginView(err.message); }
   } },
     h('h2', null, 'Owner login'),
     error && notice('err', error),
+    h('div', { class: 'field' }, h('label', { for: 'email' }, 'Email'), email),
     h('div', { class: 'field' }, h('label', { for: 'pw' }, 'Password'), pw),
     h('button', { class: 'btn btn-gold', type: 'submit' }, 'Log in'));
   app.replaceChildren(form);
-  pw.focus();
+  email.focus();
 }
 
-async function act(path, body, okMessage, method = 'POST') {
-  S.busy = path;
+function notOwnerView() {
+  $('#admin-actions').classList.remove('hidden');
+  app.replaceChildren(notice('err', 'This account is not set up as the owner. Run supabase/make-owner.sql for this email (see the README), then log in again.'));
+}
+
+async function act(fn, okMessage) {
+  if (S.busy) return;
+  S.busy = true;
   S.message = null;
   try {
-    await api(path, { method, body });
+    await fn();
     S.message = notice('ok', okMessage);
   } catch (err) { S.message = notice('err', err.message); }
-  S.busy = null;
+  S.busy = false;
   await load();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -53,10 +76,9 @@ function draw() {
   const d = S.data;
   const needs = d.quotes.filter((q) => ['pending', 'proposed'].includes(q.bookings[0]?.status) || q.status === 'new');
   const setup = [];
-  if (d.setup.generatedPassword) setup.push(notice('warn', 'Setup: OWNER_PASSWORD is not set; the server printed a temporary password to its console. Set OWNER_PASSWORD in .env.'));
-  if (!d.setup.emailConfigured) setup.push(notice('warn', 'Demo mode for notifications: RESEND_API_KEY, MAIL_FROM and OWNER_EMAIL are not set. You will not be emailed about new requests and customers will not receive emails. Messages are written to data/outbox.log.'));
-  if (d.setup.placeholderHours) setup.push(notice('warn', 'Setup: booking hours and time windows in config/site.config.json are placeholders. Enter your real hours and set "placeholder" to false.'));
-  if (!d.setup.pricingConfigured) setup.push(notice('info', 'No pricing rates are configured, so customers see “Submit for a free personalized quote.” Add rates in config/site.config.json to show estimates.'));
+  if (!CONFIG.notifications.email) setup.push(notice('warn', 'Email notifications are not set up. You will not be emailed about new requests or bookings, so check this dashboard regularly. Customers see their status on the website instead.'));
+  if (CONFIG.scheduling.placeholder) setup.push(notice('warn', 'Setup: booking hours and time windows in config/site.config.json are placeholders. Enter your real hours and set "placeholder" to false.'));
+  if (!Object.values(CONFIG.pricing.services).some((r) => typeof r.rate === 'number')) setup.push(notice('info', 'No pricing rates are configured, so customers see “Submit for a free personalized quote.” Add rates in config/site.config.json to show estimates.'));
 
   const tab = (id, label, count) => h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === id), onClick: () => { S.tab = id; draw(); } }, label, count ? h('span', { class: 'count' }, count) : null);
   app.replaceChildren(
@@ -65,7 +87,6 @@ function draw() {
     S.tab === 'requests' ? requestsView() : scheduleView());
   S.message = null;
 }
-
 // ---------- requests ----------
 function requestsView() {
   const filters = [['attention', 'Needs attention'], ['confirmed', 'Confirmed'], ['all', 'All']];
@@ -90,6 +111,7 @@ function requestCard(q) {
   const b = q.bookings[0];
   const c = q.contact;
   const open = b && ['pending', 'proposed'].includes(b.status);
+  const est = estimate(CONFIG, q.items);
   return h('details', { class: 'rq', open: open || null },
     h('summary', null,
       h('span', { class: 'who' }, c.name, ' · ', q.ref),
@@ -105,9 +127,9 @@ function requestCard(q) {
           h('p', null, `${c.address}, ${c.zip}`),
           h('p', null, `${q.propertyType === 'commercial' ? 'Commercial' : 'Residential'} · prefers ${{ phone: 'phone call', text: 'text message', email: 'email' }[c.preferred]}`)),
         h('div', { class: 'box' }, h('h4', null, 'Estimate'),
-          q.estimate.available ? [h('p', null, h('strong', null, money(q.estimate.total, CONFIG.pricing.currency))), h('ul', null, q.estimate.lines.map((l) => h('li', null, `${l.label}: ${money(l.amount, CONFIG.pricing.currency)}`)))] : h('p', null, 'No estimate shown to customer (', q.estimate.reason === 'needs-assessment' ? 'needs assessment' : 'no rates configured', ').'),
+          est.available ? [h('p', null, h('strong', null, money(est.total, CONFIG.pricing.currency))), h('ul', null, est.lines.map((l) => h('li', null, `${l.label}: ${money(l.amount, CONFIG.pricing.currency)}`)))] : h('p', null, 'No dollar estimate (', est.reason === 'needs-assessment' ? 'needs assessment' : 'no rates configured', ').'),
           h('label', { class: 'label', for: `st-${q.id}` }, 'Quote status'),
-          h('select', { id: `st-${q.id}`, onChange: (e) => act(`/api/admin/quotes/${q.id}/status`, { status: e.target.value }, 'Status updated.') },
+          h('select', { id: `st-${q.id}`, onChange: (e) => act(() => own('owner_set_quote_status', { p_id: q.id, p_status: e.target.value }), 'Status updated.') },
             ['new', 'contacted', 'closed'].map((s) => h('option', { value: s, selected: q.status === s }, s[0].toUpperCase() + s.slice(1)))))),
       h('div', { class: 'box' }, h('h4', null, 'Services & measurements'),
         h('ul', null, q.items.map((i) => h('li', null, h('strong', null, svcLabel(i.id)), ` – ${measure(i)}; ${i.condition} dirt`,
@@ -115,8 +137,9 @@ function requestCard(q) {
           i.notes ? h('div', { class: 'muted' }, `Notes: ${i.notes}`) : null))),
         q.notes ? h('p', null, h('strong', null, 'Customer notes: '), q.notes) : null),
       q.photos.length ? h('div', { class: 'box' }, h('h4', null, `Photos (${q.photos.length})`),
-        h('div', { class: 'photos' }, q.photos.map((p) => h('a', { href: `/api/admin/photos/${p.id}`, target: '_blank', rel: 'noopener' }, h('img', { src: `/api/admin/photos/${p.id}`, alt: `Customer photo ${p.name || ''}`, loading: 'lazy' }))))) : null,
-      q.bookings.length ? h('div', { class: 'box' }, h('h4', null, 'Booking'), q.bookings.map((bk, n) => bookingPanel(q, bk, n === 0))) : null));
+        h('div', { class: 'photos' }, q.photos.map((p) => h('a', { href: S.urls[p.path], target: '_blank', rel: 'noopener' }, h('img', { src: S.urls[p.path], alt: `Customer photo ${p.name || ''}`, loading: 'lazy' }))))) : null,
+      q.bookings.length ? h('div', { class: 'box' }, h('h4', null, 'Booking'), q.bookings.map((bk, n) => bookingPanel(q, bk, n === 0))) : null,
+      h('div', { class: 'actions' }, h('button', { class: 'link-btn', type: 'button', onClick: () => confirm(`Permanently delete request ${q.ref} from ${c.name}, including its photos and bookings?`) && act(async () => { await removePhotos(q.photos.map((p) => p.path)); await own('owner_delete_quote', { p_id: q.id }); }, 'Request deleted.') }, 'Delete this request'))));
 }
 
 function bookingPanel(q, b, latest) {
@@ -128,7 +151,7 @@ function bookingPanel(q, b, latest) {
   if (!latest) return h('div', null, head, ...extras);
 
   if (b.status === 'confirmed') {
-    return h('div', null, head, ...extras, h('button', { class: 'btn btn-danger btn-sm', type: 'button', onClick: () => confirm('Cancel this confirmed appointment? The time will open up again.') && act(`/api/admin/bookings/${b.id}/cancel`, {}, 'Appointment cancelled.') }, 'Cancel appointment'));
+    return h('div', null, head, ...extras, h('button', { class: 'btn btn-danger btn-sm', type: 'button', onClick: () => confirm('Cancel this confirmed appointment? The time will open up again.') && act(() => own('owner_booking_action', { p_id: b.id, p_action: 'cancel', p_slot: null, p_message: null }), 'Appointment cancelled.') }, 'Cancel appointment'));
   }
   if (!['pending', 'proposed'].includes(b.status)) return h('div', null, head, ...extras);
 
@@ -142,8 +165,11 @@ function bookingPanel(q, b, latest) {
   const sync = () => { f.start.disabled = f.end.disabled = f.full.checked; };
   f.full.addEventListener('change', sync);
   sync();
-  const body = () => ({ date: f.date.value, start: f.start.value, end: f.end.value, fullDay: f.full.checked, message: f.msg.value });
-  const btn = (label, cls, path, ok, confirmText) => h('button', { class: `btn ${cls} btn-sm`, type: 'button', disabled: S.busy ? true : null, onClick: () => { if (confirmText && !confirm(confirmText)) return; act(`/api/admin/bookings/${b.id}/${path}`, body(), ok); } }, label);
+  const slot = () => ({ date: f.date.value, start: f.start.value, end: f.end.value, fullDay: f.full.checked });
+  const btn = (label, cls, action, ok, confirmText) => h('button', { class: `btn ${cls} btn-sm`, type: 'button', disabled: S.busy ? true : null, onClick: () => {
+    if (confirmText && !confirm(confirmText)) return;
+    act(() => own('owner_booking_action', { p_id: b.id, p_action: action, p_slot: action === 'decline' ? null : slot(), p_message: f.msg.value }), ok);
+  } }, label);
 
   return h('div', { class: 'slot-form' }, head, ...extras,
     h('p', { class: 'muted' }, 'Set the appointment time below (prefilled from the request). Accepting blocks that time so no one else can book it; the customer is told only after you accept.'),
@@ -178,7 +204,7 @@ function scheduleView() {
         h('tbody', null, d.appointments.map((a) => h('tr', null, h('td', null, fmtDate(a.date, { weekday: 'short', month: 'short', day: 'numeric' })), h('td', null, a.fullDay ? 'Full day' : fmtRange(a.start, a.end)), h('td', null, a.name), h('td', null, a.ref)))))) : h('p', { class: 'empty' }, 'No confirmed appointments.')),
     h('div', null,
       h('h3', null, 'Block time off'),
-      h('form', { class: 'card', onSubmit: (e) => { e.preventDefault(); act('/api/admin/blocks', { date: date.value, allDay: all.checked, start: start.value, end: end.value, reason: reason.value }, 'Time blocked.'); } },
+      h('form', { class: 'card', onSubmit: (e) => { e.preventDefault(); act(() => own('owner_add_block', { p_date: date.value || null, p_all_day: all.checked, p_start: all.checked ? null : start.value, p_end: all.checked ? null : end.value, p_reason: reason.value }), 'Time blocked.'); } },
         h('div', { class: 'field' }, h('label', { for: 'bl-date' }, 'Date'), date),
         h('label', { class: 'check' }, all, 'Block the whole day'),
         h('div', { class: 'row' }, h('div', { class: 'field' }, h('label', { for: 'bl-start' }, 'From'), start), h('div', { class: 'field' }, h('label', { for: 'bl-end' }, 'To'), end)),
@@ -186,9 +212,9 @@ function scheduleView() {
         h('button', { class: 'btn btn-gold', type: 'submit' }, 'Block this time')),
       h('h3', null, 'Blocked dates'),
       d.blocks.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'table' }, h('thead', null, h('tr', null, ['Date', 'Time', 'Reason', ''].map((t) => h('th', { scope: 'col' }, t)))),
-        h('tbody', null, d.blocks.map((b) => h('tr', null, h('td', null, fmtDate(b.date, { weekday: 'short', month: 'short', day: 'numeric' })), h('td', null, b.start == null ? 'All day' : fmtRange(b.start, b.end)), h('td', null, b.reason || ''), h('td', null, h('button', { class: 'link-btn', type: 'button', 'aria-label': `Remove block on ${b.date}`, onClick: () => act(`/api/admin/blocks/${b.id}`, undefined, 'Block removed.', 'DELETE') }, 'Remove'))))))) : h('p', { class: 'empty' }, 'No blocked dates.')));
+        h('tbody', null, d.blocks.map((b) => h('tr', null, h('td', null, fmtDate(b.date, { weekday: 'short', month: 'short', day: 'numeric' })), h('td', null, b.start == null ? 'All day' : fmtRange(b.start, b.end)), h('td', null, b.reason || ''), h('td', null, h('button', { class: 'link-btn', type: 'button', 'aria-label': `Remove block on ${b.date}`, onClick: () => act(() => own('owner_remove_block', { p_id: b.id }), 'Block removed.') }, 'Remove'))))))) : h('p', { class: 'empty' }, 'No blocked dates.')));
 }
 
-$('#logout').addEventListener('click', async () => { await api('/api/admin/logout', { method: 'POST' }).catch(() => {}); S.data = null; $('#admin-actions').classList.add('hidden'); loginView(); });
+$('#logout').addEventListener('click', async () => { await signOut(); S.data = null; loginView(); });
 $('#refresh').addEventListener('click', () => { app.replaceChildren(spinner()); load(); });
 load();

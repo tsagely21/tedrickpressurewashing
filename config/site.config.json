@@ -1,6 +1,16 @@
 {
   "_readme": "Single place to edit business info, services, gallery projects, pricing and scheduling. Restart the server after editing. Set a pricing rate to a number to turn on dollar estimates; leave it null to show 'Submit for a free personalized quote'.",
 
+  "supabase": {
+    "url": "https://xspyblmaenxswfdsdcfc.supabase.co",
+    "publishableKey": "sb_publishable_PL31gTusvDrDOivN_IPBBg_I9oZx5Gg"
+  },
+
+  "notifications": {
+    "email": false,
+    "note": "Set to true only after email notifications are actually set up. While false, the site tells customers to check their status link."
+  },
+
   "business": {
     "name": "Tedrick Mobile Pressure Washing, LLC",
     "shortName": "Tedrick Mobile Pressure Washing",

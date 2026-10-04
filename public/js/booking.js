@@ -1,4 +1,5 @@
-import { CONFIG, $, h, icon, api, spinner, notice } from './util.js';
+import { CONFIG, $, h, icon, spinner, notice } from './util.js';
+import { rpc } from './supabase.js';
 import { addDays, fmtDate, fmtRange, pad, toMin, weekday } from './shared/dates.js';
 
 const KEY = 'tm_request';
@@ -8,12 +9,13 @@ const state = { token: null, ref: null, status: null, month: null, avail: null, 
 function loadToken() {
   const fromUrl = new URL(location.href).searchParams.get('request');
   try {
-    if (fromUrl) sessionStorage.setItem(KEY, JSON.stringify({ token: fromUrl }));
-    const saved = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    if (fromUrl) localStorage.setItem(KEY, JSON.stringify({ token: fromUrl }));
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     state.token = saved?.token || fromUrl || null;
   } catch { state.token = fromUrl || null; }
 }
-const forget = () => { try { sessionStorage.removeItem(KEY); } catch { /* ignore */ } state.token = null; };
+const svcLabel = (id) => CONFIG.services.find((s) => s.id === id)?.label || id;
+const forget = () => { try { localStorage.removeItem(KEY); } catch { /* ignore */ } state.token = null; };
 
 async function refresh() {
   loadToken();
@@ -21,8 +23,9 @@ async function refresh() {
   state.loading = true;
   draw();
   try {
-    state.status = await api(`/api/requests/${state.token}`);
-    state.ref = state.status.ref;
+    const r = await rpc('get_request', { p_token: state.token });
+    state.status = { ...r, services: r.items.map((i) => ({ id: i.id, label: svcLabel(i.id) })) };
+    state.ref = r.ref;
   } catch (err) {
     if (err.status === 404) forget();
     state.status = null;
@@ -61,7 +64,7 @@ function statusView(b) {
   const link = h('p', { class: 'muted' }, 'Bookmark this page to check back: ', h('a', { href: `/?request=${state.token}#booking` }, 'your request link'));
   const refreshBtn = h('button', { class: 'link-btn', type: 'button', onClick: refresh }, 'Check for updates');
   const msg = b.ownerMessage && notice('info', `Message from the owner: ${b.ownerMessage}`);
-  const demo = st.demo && notice('warn', 'Demo mode: email notifications are not set up, so no email will be sent. Check this page for updates.');
+  const demo = !CONFIG.notifications.email && notice('info', 'Email updates are not turned on yet. Bookmark this page and check back, or call us.');
   const act = (label, kind, fn) => h('button', { class: `btn ${kind}`, type: 'button', disabled: state.busy, onClick: fn }, state.busy ? spinner() : null, label);
   const err = state.error && notice('err', state.error);
   let box;
@@ -87,7 +90,8 @@ async function respond(action, body) {
   state.busy = true; state.error = '';
   draw();
   try {
-    await api(`/api/requests/${state.token}/${action}`, { method: 'POST', body: body || {} });
+    if (action === 'cancel') await rpc('cancel_booking', { p_token: state.token });
+    else await rpc('respond_proposal', { p_token: state.token, p_action: body.action });
     state.busy = false;
     await refresh();
   } catch (err) { state.busy = false; state.error = err.message; await refresh(); state.error = ''; }
@@ -101,11 +105,11 @@ const lastDay = (ym) => { const [y, m] = ym.split('-').map(Number); return `${ym
 async function loadAvailability() {
   try {
     if (!state.month) {
-      const first = await api('/api/availability');
+      const first = await rpc('get_availability', {});
       state.month = monthOf(first.min);
       state.range = { min: first.min, max: first.max, today: first.today };
     }
-    state.avail = await api(`/api/availability?from=${state.month}-01&to=${lastDay(state.month)}`);
+    state.avail = await rpc('get_availability', { p_from: `${state.month}-01`, p_to: lastDay(state.month) });
     state.range = { min: state.avail.min, max: state.avail.max, today: state.avail.today };
   } catch (err) { state.error = err.message; state.avail = { days: {}, windows: CONFIG.scheduling.windows }; }
   draw();
@@ -163,7 +167,7 @@ async function submit() {
   state.busy = true; state.error = '';
   draw();
   try {
-    await api(`/api/requests/${state.token}/bookings`, { method: 'POST', body: { date: state.date, windowId: state.windowId, note: state.note } });
+    await rpc('request_booking', { p_token: state.token, p_date: state.date, p_window: state.windowId, p_note: state.note });
     state.busy = false; state.note = '';
     await refresh();
     panel().scrollIntoView({ block: 'start', behavior: 'smooth' });

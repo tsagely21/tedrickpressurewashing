@@ -18,7 +18,8 @@ const tmp = mkdtempSync(join(tmpdir(), 'tm-browser-'));
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 writeFileSync(join(tmp, 'yard.png'), PNG);
 
-const server = spawn(process.execPath, ['server.js'], { cwd: ROOT, stdio: 'ignore', env: { ...process.env, PORT, DATA_DIR: join(tmp, 'data'), OWNER_PASSWORD: 'testpass', RESEND_API_KEY: '' } });
+// The site is built and served by a local stand-in for Supabase that runs the real supabase/schema.sql.
+const server = spawn(process.execPath, ['test/fake-supabase.mjs'], { cwd: ROOT, stdio: 'ignore', env: { ...process.env, PORT, OUT: join(tmp, 'site') } });
 const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${CDP}`, `--user-data-dir=${join(tmp, 'profile')}`, '--no-first-run', '--disable-gpu', 'about:blank'], { stdio: 'ignore' });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -166,9 +167,10 @@ async function ownerFlow(label, ref) {
   await goto(BASE + '/admin/');
   await ev(PAGE);
   await until('document.querySelector("#pw")', 'login form');
-  await ev('T.type("#pw", "wrong"); document.querySelector("form.login").requestSubmit()');
+  await ev('T.type("#email", "owner@test.local"); T.type("#pw", "wrong"); document.querySelector("form.login").requestSubmit()');
   await until('document.querySelector(".notice.err")', 'wrong password rejected');
-  await ev('T.type("#pw", "testpass"); document.querySelector("form.login").requestSubmit()');
+  await until('document.querySelector("#pw")', 'login form re-rendered');
+  await ev('T.type("#email", "owner@test.local"); T.type("#pw", "testpass"); document.querySelector("form.login").requestSubmit()');
   await until('document.querySelector(".rq")', 'requests listed');
   const text = await ev('document.querySelector(".req-list").innerText');
   assert.ok(text.includes(ref) && text.includes('Pat Tester') && text.includes('Pending approval'));
@@ -209,8 +211,8 @@ try {
   await ev('window.scrollTo(0, document.body.scrollHeight)');
   await shot('mobile-11-bottom');
 
-  // The dashboard legitimately gets 401s when logged out / on a wrong password.
-  const unexpected = errors.filter((e) => !/status of 401.*\/api\/admin\//s.test(e));
+  // The deliberate wrong-password attempt is the only expected failing request.
+  const unexpected = errors.filter((e) => !/status of 400.*\/auth\/v1\/token/s.test(e));
   assert.deepEqual(unexpected, [], 'console errors: ' + unexpected.join(' | '));
   console.log('\nAll browser checks passed. Screenshots in test/screenshots/');
 } catch (err) {

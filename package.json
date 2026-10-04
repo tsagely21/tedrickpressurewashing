@@ -1,14 +1,18 @@
 {
   "name": "tedrick-mobile-pressure-washing",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Website, quote builder, booking requests and owner dashboard for Tedrick Mobile Pressure Washing, LLC",
+  "description": "Static website + Supabase backend for Tedrick Mobile Pressure Washing, LLC",
   "scripts": {
-    "start": "node server.js",
-    "test": "node test/e2e.mjs"
+    "build": "node build.mjs",
+    "dev": "node scripts/serve.mjs",
+    "test": "node --test test/sql.test.mjs && node test/browser.mjs"
   },
   "engines": {
-    "node": ">=22.5"
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0"
   }
 }

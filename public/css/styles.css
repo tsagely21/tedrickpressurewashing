@@ -194,6 +194,7 @@ p { margin: 0 0 1em; }
 .est-box { background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px; margin-top: 8px; }
 .est-total { font-size: 1.8rem; font-weight: 800; color: var(--gold); }
 .est-note { font-size: 0.82rem; color: #cdd3f5; margin: 6px 0 0; }
+.review-block .est-note { color: var(--muted); }
 
 .field { margin-bottom: 18px; }
 .field label, .field legend, .label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 0.95rem; }

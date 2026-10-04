@@ -1,4 +1,5 @@
-import { CONFIG, $, h, icon, api, spinner, notice } from './util.js';
+import { CONFIG, $, h, icon, spinner, notice } from './util.js';
+import { rpc, uploadPhoto } from './supabase.js';
 import { estimate, money } from './shared/pricing.js';
 
 const STEPS = ['Property & services', 'Measurements', 'Photos & contact', 'Review'];
@@ -229,7 +230,7 @@ async function shrink(file) {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, c.width, c.height);
   ctx.drawImage(bmp, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.82);
+  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', 0.82));
 }
 
 async function addPhotos(files) {
@@ -238,7 +239,7 @@ async function addPhotos(files) {
   for (const f of files) {
     if (state.photos.length >= MAX_PHOTOS) { problems.push(`Only ${MAX_PHOTOS} photos can be attached.`); break; }
     if (!f.type.startsWith('image/')) { problems.push(`${f.name} isn't an image.`); continue; }
-    try { state.photos.push({ name: f.name, data: await shrink(f) }); }
+    try { const blob = await shrink(f); state.photos.push({ name: f.name, blob, url: URL.createObjectURL(blob) }); }
     catch { problems.push(`${f.name} couldn't be read. Try a JPG or PNG.`); }
   }
   state.photoError = problems.join(' ');
@@ -271,8 +272,8 @@ function step3() {
         h('input', { id: 'photo-input', type: 'file', accept: 'image/*', multiple: true, 'aria-describedby': 'photo-msg', onChange: (e) => { addPhotos([...e.target.files]); } })),
       h('div', { id: 'photo-msg' }, state.photoError && notice('err', state.photoError)),
       state.photos.length ? h('ul', { class: 'photo-grid', style: null }, state.photos.map((p, i) =>
-        h('li', { class: 'thumb', role: 'listitem' }, h('img', { src: p.data, alt: `Attached photo ${i + 1}: ${p.name}` }),
-          h('button', { type: 'button', 'aria-label': `Remove photo ${i + 1}`, onClick: () => { state.photos.splice(i, 1); render('photo-input'); } }, icon('close'))))) : null),
+        h('li', { class: 'thumb', role: 'listitem' }, h('img', { src: p.url, alt: `Attached photo ${i + 1}: ${p.name}` }),
+          h('button', { type: 'button', 'aria-label': `Remove photo ${i + 1}`, onClick: () => { URL.revokeObjectURL(p.url); state.photos.splice(i, 1); render('photo-input'); } }, icon('close'))))) : null),
     h('div', { class: 'field' }, h('label', { for: 'q-notes' }, 'Anything else we should know? (optional)'),
       h('textarea', { id: 'q-notes', maxlength: '2000', onInput: (e) => { state.notes = e.target.value; } }, state.notes)),
     h('div', { class: 'row' }, CONTACT_FIELDS.slice(0, 3).map(field)),
@@ -335,18 +336,35 @@ function step4() {
   ];
 }
 
+const numOrNull = (v) => { const n = Number(v); return v !== '' && v != null && n > 0 ? n : null; };
+const rpcItems = () => payloadItems().map((i) => ({
+  id: i.id, unsure: i.unsure, condition: i.condition, areaSqft: numOrNull(i.areaSqft), length: numOrNull(i.length), width: numOrNull(i.width),
+  linearFt: numOrNull(i.linearFt), heightFt: numOrNull(i.heightFt), fields: i.fields, notes: i.notes
+}));
+
 async function submit() {
   state.submitting = true;
   state.formError = '';
   render();
   try {
-    const res = await api('/api/quotes', {
-      method: 'POST',
-      body: { propertyType: state.propertyType, services: payloadItems(), notes: state.notes, contact: state.contact, photos: state.photos, website: state.website }
+    const id = crypto.randomUUID();
+    const res = await rpc('submit_quote', {
+      p_id: id,
+      p_data: { propertyType: state.propertyType, items: rpcItems(), notes: state.notes, contact: state.contact, website: state.website }
     });
+    // The request is saved. Photos go to private storage next; a photo failure must not hide that the quote went through.
+    const files = [];
+    let photosFailed = 0;
+    for (const [i, p] of state.photos.entries()) {
+      const path = `${id}/${i + 1}.jpg`;
+      try { await uploadPhoto(path, p.blob); files.push({ path, name: p.name }); } catch { photosFailed++; }
+    }
+    if (files.length) {
+      try { await rpc('attach_photos', { p_token: res.token, p_files: files }); } catch { photosFailed += files.length; }
+    }
     state.submitting = false;
-    state.submitted = res;
-    try { sessionStorage.setItem('tm_request', JSON.stringify({ token: res.token, ref: res.ref })); } catch { /* storage unavailable */ }
+    state.submitted = { ref: res.ref, token: res.token, estimate: estimate(CONFIG, payloadItems()), photosFailed };
+    try { localStorage.setItem('tm_request', JSON.stringify({ token: res.token, ref: res.ref })); } catch { /* storage unavailable */ }
     render();
     $('#progress').scrollIntoView({ block: 'start', behavior: 'smooth' });
     document.dispatchEvent(new CustomEvent('quote:submitted'));
@@ -362,18 +380,20 @@ async function submit() {
 
 function successView() {
   const r = state.submitted;
+  const link = `${location.origin}/?request=${r.token}#booking`;
   return h('div', { class: 'success' },
     h('div', { class: 'tick' }, icon('check')),
     h('h3', { id: 'step-title', tabindex: '-1' }, 'Quote request received!'),
     h('p', null, 'Your request ID is ', h('span', { class: 'ref' }, r.ref), '.'),
     h('p', { class: 'muted' }, 'We’ll review your details and follow up using your preferred contact method.'),
     estimateBlock(r.estimate),
-    r.demo && notice('warn', 'Demo mode: your request is saved, but email notifications are not set up yet.'),
+    r.photosFailed ? notice('warn', `Your request was saved, but ${r.photosFailed} photo${r.photosFailed > 1 ? 's' : ''} could not be uploaded. You can send photos when we contact you.`) : null,
+    notice('info', CONFIG.notifications.email ? 'Save this link to check your booking status any time.' : 'Save this link to check your booking status. Email updates are not turned on yet, so this page is where you will see changes.'),
+    h('p', null, h('a', { href: link }, link)),
     h('div', { class: 'hero-actions center' },
       h('a', { class: 'btn btn-gold btn-lg', href: '#booking' }, icon('right'), 'Next: request a booking time'),
       h('button', { class: 'btn btn-ghost btn-lg', type: 'button', onClick: () => { state = blankState(); render(); } }, 'Start another quote')));
 }
-
 // ---------- public API ----------
 export function preselect(ids) {
   if (state.submitted) state = blankState();
