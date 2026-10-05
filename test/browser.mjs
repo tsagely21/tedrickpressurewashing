@@ -42,7 +42,14 @@ async function ev(expr) {
   return r.result.value;
 }
 const until = (expr, label, ms) => waitFor(() => ev(expr), label, ms);
-const shot = async (name) => writeFileSync(join(SHOTS, name + '.png'), Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).data, 'base64'));
+let viewportWidth = 1366;
+const setViewport = (m) => { viewportWidth = m.width; return send('Emulation.setDeviceMetricsOverride', m); };
+// The page must never scroll sideways. Checked at every screenshot, so every screen of every flow is covered.
+async function overflowCheck(where) {
+  const r = await ev(`(() => { const w = ${viewportWidth}; const bad = [...document.querySelectorAll("body *")].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.right > w + 1 && !e.closest("#gallery-track, dialog"); }).slice(0, 6).map((e) => e.tagName + "." + e.className + " right=" + Math.round(e.getBoundingClientRect().right)); return { scrollWidth: document.documentElement.scrollWidth, screenWidth: w, bad }; })()`);
+  assert.ok(r.scrollWidth <= r.screenWidth + 1, `horizontal scroll on "${where}": ${JSON.stringify(r)}`);
+}
+const shot = async (name) => { await overflowCheck(name); writeFileSync(join(SHOTS, name + '.png'), Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).data, 'base64')); };
 const goto = async (url) => { await send('Page.navigate', { url }); await sleep(300); await until('document.readyState === "complete"', 'load ' + url); };
 const key = (k, code) => send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code: code || k, windowsVirtualKeyCode: { Escape: 27, ArrowRight: 39, ArrowLeft: 37 }[k] }).then(() => send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: code || k }));
 
@@ -60,7 +67,7 @@ window.T = {
 
 async function customerFlow(label, metrics) {
   console.log(`\n== ${label} ==`);
-  await send('Emulation.setDeviceMetricsOverride', metrics);
+  await setViewport(metrics);
   await goto(BASE + '/');
   await ev(PAGE);
   assert.ok((await ev('document.title')).includes('Tedrick'));
@@ -234,7 +241,7 @@ async function ownerFlow(label, ref) {
 // Owner marks a second request Confirmed (as after a phone call) and schedules a date for it.
 async function ownerSchedule(ref) {
   console.log('\n== owner schedules a request that has no appointment yet ==');
-  await send('Emulation.setDeviceMetricsOverride', { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
+  await setViewport({ width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
   await goto(BASE + '/admin/');
   await ev(PAGE);
   await until('document.querySelector(".rq")', 'dashboard loads with the saved login');
@@ -270,9 +277,9 @@ try {
   const ref = await customerFlow('desktop', { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
   await ownerFlow('desktop', ref);
 
-  const ref2 = await customerFlow('mobile', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  const ref2 = await customerFlow('mobile', { width: 360, height: 740, deviceScaleFactor: 2, mobile: true });
   await ownerSchedule(ref2);
-  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  await setViewport({ width: 360, height: 740, deviceScaleFactor: 2, mobile: true });
   // No horizontal page scroll on mobile
   await goto(BASE + '/');
   assert.ok(await ev('document.documentElement.scrollWidth <= window.innerWidth + 1'), 'no horizontal overflow on mobile');
