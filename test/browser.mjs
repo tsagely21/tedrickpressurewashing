@@ -82,7 +82,19 @@ async function customerFlow(label, metrics) {
   await ev('T.click("#gal-next")');
   await until(`document.querySelector("#gallery-track").scrollLeft > ${before}`, 'gallery arrow scroll');
   await ev('document.querySelector("#gallery-track").scrollTo(0,0)');
-  await ev('T.click(".g-card")');
+  // Cottage roof project (second card): several before/after photos, each opens full size
+  await ev('T.click(".g-card:nth-child(2)")');
+  await until('document.querySelector("#viewer").open', 'viewer opens');
+  assert.equal(await ev('document.querySelectorAll("#viewer-body .shot-zoom img").length'), 7, '4 before + 3 after photos');
+  await ev('T.click("#viewer-body .shot-zoom")');
+  await until('document.querySelector(".lightbox").open && document.querySelector(".lightbox img").src.includes("cottage-before-1")', 'photo enlarges');
+  await sleep(300);
+  await shot(`${label}-2-zoom`);
+  await key('Escape');
+  await until('!document.querySelector(".lightbox").open', 'Escape closes the enlarged photo');
+  await ev('document.querySelector("#viewer").close()');
+  // Curb project (third card): before + two after photos
+  await ev('T.click(".g-card:nth-child(3)")');
   await until('document.querySelector("#viewer").open', 'viewer opens');
   assert.equal(await ev('document.querySelectorAll("#viewer-body img").length'), 3, 'before + two after photos');
   await sleep(300);
@@ -94,15 +106,15 @@ async function customerFlow(label, metrics) {
   await until('!document.querySelector("#viewer").open', 'Escape closes viewer');
 
   // The draggable slider is used only for projects flagged compare:true (same-view photos). Flip one in-page to test it.
-  await ev('import("/js/util.js").then((m) => { m.CONFIG.gallery[0].compare = true; })');
-  await ev('T.click(".g-card")');
+  await ev('import("/js/util.js").then((m) => { m.CONFIG.gallery[2].compare = true; })');
+  await ev('T.click(".g-card:nth-child(3)")');
   await until('document.querySelector("#viewer .compare input[type=range]")', 'slider renders for compare:true');
   await ev('T.type("#viewer .compare input[type=range]", "80")');
   assert.equal(await ev('document.querySelector("#viewer .compare").style.getPropertyValue("--pos")'), '80%', 'slider moves');
   await sleep(300);
   await shot(`${label}-2b-slider`);
   await ev('document.querySelector("#viewer").close()');
-  await ev('import("/js/util.js").then((m) => { m.CONFIG.gallery[0].compare = false; })');
+  await ev('import("/js/util.js").then((m) => { m.CONFIG.gallery[2].compare = false; })');
 
   // Service card pre-selects services in the quote builder
   await ev('T.clickText("Get a Quote", document.querySelectorAll(".s-card")[4])');

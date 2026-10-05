@@ -1,6 +1,8 @@
 import { CONFIG, $, h, icon } from './util.js';
 
+// `before` may be one photo or a list of photos
 const projects = CONFIG.gallery;
+const befores = (p) => [].concat(p.before || []);
 const src = (p) => '/' + p.replace(/^\//, '');
 let current = 0;
 
@@ -9,8 +11,8 @@ function placeholder(text, note) {
 }
 
 function card(p, i) {
-  const hasPhotos = p.before || p.after.length;
-  const cover = p.before || p.after[0];
+  const hasPhotos = befores(p).length || p.after.length;
+  const cover = befores(p)[0] || p.after[0];
   return h('button', { class: 'g-card', type: 'button', role: 'listitem', 'aria-label': `${p.label}: open before and after photos`, onClick: () => openViewer(i) },
     h('div', { class: 'g-media' },
       cover ? h('img', { src: src(cover), alt: `${p.label} project photo`, loading: 'lazy' }) : placeholder('Photo coming soon', 'Placeholder – add in site.config.json'),
@@ -18,19 +20,36 @@ function card(p, i) {
     h('div', { class: 'g-info' }, h('h3', null, p.label), h('span', null, p.category)));
 }
 
+// Click a photo to see it full size.
+let zoomDlg;
+function zoom(path, alt) {
+  if (!zoomDlg) {
+    zoomDlg = h('dialog', { class: 'lightbox', 'aria-label': 'Enlarged photo' },
+      h('button', { class: 'icon-btn close', type: 'button', 'aria-label': 'Close photo', onClick: () => zoomDlg.close() }, icon('close')),
+      h('img', { alt: '' }));
+    zoomDlg.addEventListener('click', (e) => { if (e.target !== zoomDlg.querySelector('img')) zoomDlg.close(); });
+    document.body.append(zoomDlg);
+  }
+  const img = zoomDlg.querySelector('img');
+  img.src = src(path); img.alt = alt;
+  zoomDlg.showModal();
+}
+
 function shot(label, kind, path, projectLabel) {
+  const alt = `${label} photo of ${projectLabel}`;
   return h('figure', { class: 'shot' },
-    path ? h('img', { src: src(path), alt: `${label} photo of ${projectLabel}` }) : placeholder(`${label} photo placeholder`, 'Replace in site.config.json'),
+    path ? h('button', { class: 'shot-zoom', type: 'button', 'aria-label': `Enlarge: ${alt}`, onClick: () => zoom(path, alt) }, h('img', { src: src(path), alt, loading: 'lazy' })) : placeholder(`${label} photo placeholder`, 'Replace in site.config.json'),
     h('span', { class: `badge ${kind}` }, label));
 }
 
 function slider(p) {
   const box = h('div', { class: 'compare' });
+  const before = befores(p)[0];
   const range = h('input', { type: 'range', min: '0', max: '100', value: '50', 'aria-label': `Before and after comparison slider for ${p.label}. Drag or use arrow keys.` });
   range.addEventListener('input', () => box.style.setProperty('--pos', range.value + '%'));
   box.append(
     h('img', { src: src(p.after[0]), alt: `After: ${p.label}` }),
-    h('img', { class: 'c-before', src: src(p.before), alt: `Before: ${p.label}` }),
+    h('img', { class: 'c-before', src: src(before), alt: `Before: ${p.label}` }),
     h('span', { class: 'badge l' }, 'Before'), h('span', { class: 'badge r' }, 'After'),
     h('div', { class: 'c-line' }), range);
   return box;
@@ -45,13 +64,14 @@ function renderViewer() {
   const body = $('#viewer-body');
   body.replaceChildren();
   // Slider only when the project is flagged as the same view (compare: true); otherwise side by side.
-  if (p.compare && p.before && p.after[0]) {
+  if (p.compare && befores(p).length === 1 && p.after[0]) {
     body.className = 'viewer-body';
     body.append(slider(p), ...p.after.slice(1).map((a, n) => shot(`After ${n + 2}`, 'after', a, p.label)));
   } else {
     body.className = 'viewer-body pair';
     const afters = p.after.length ? p.after : [null];
-    body.append(shot('Before', 'before', p.before, p.label), ...afters.map((a, n) => shot(afters.length > 1 ? `After ${n + 1}` : 'After', 'after', a, p.label)));
+    const bs = befores(p).length ? befores(p) : [null];
+    body.append(...bs.map((b, n) => shot(bs.length > 1 ? `Before ${n + 1}` : 'Before', 'before', b, p.label)), ...afters.map((a, n) => shot(afters.length > 1 ? `After ${n + 1}` : 'After', 'after', a, p.label)));
   }
 }
 

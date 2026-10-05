@@ -1,66 +1,137 @@
 {
   "_readme": "Single place to edit business info, services, gallery projects, pricing and scheduling. Restart the server after editing. Set a pricing rate to a number to turn on dollar estimates; leave it null to show 'Submit for a free personalized quote'.",
-
   "supabase": {
     "url": "https://xspyblmaenxswfdsdcfc.supabase.co",
     "publishableKey": "sb_publishable_PL31gTusvDrDOivN_IPBBg_I9oZx5Gg"
   },
-
   "notifications": {
-    "ownerEmail": { "provider": "formspree", "endpoint": "https://formspree.io/f/mkjowlbr" },
+    "ownerEmail": {
+      "provider": "formspree",
+      "endpoint": "https://formspree.io/f/mkjowlbr"
+    },
     "customerEmail": false,
     "note": "ownerEmail: every quote request, booking request and proposal reply also emails the owner through this Formspree form (remove the endpoint to turn it off). customerEmail: set to true only if customers are ever emailed; while false the site tells them to check their status link."
   },
-
   "business": {
     "name": "Tedrick Mobile Pressure Washing, LLC",
     "shortName": "Tedrick Mobile Pressure Washing",
     "owner": "Bishop Tedrick Gross",
     "phone": "225-284-0115",
     "tagline": "Cleaner Surfaces. Healthier Spaces. A Brighter Tomorrow.",
-    "payments": ["Cash", "Cash App", "Debit/credit cards"],
+    "payments": [
+      "Cash",
+      "Cash App",
+      "Debit/credit cards"
+    ],
     "ministerDiscount": "Ask about our minister's discount."
   },
-
   "pricing": {
     "currency": "USD",
     "disclaimer": "Estimated pricing is subject to confirmation after reviewing your property, measurements, and surface condition.",
     "fallbackMessage": "Submit for a free personalized quote",
-    "conditionMultipliers": { "light": 1, "moderate": 1, "heavy": 1 },
+    "conditionMultipliers": {
+      "light": 1,
+      "moderate": 1,
+      "heavy": 1
+    },
     "services": {
-      "house-soft-wash": { "method": "sqft", "rate": null, "minimum": null },
-      "roof-soft-wash": { "method": "sqft", "rate": null, "minimum": null },
-      "driveway-concrete": { "method": "sqft", "rate": null, "minimum": null },
-      "sidewalk-patio": { "method": "sqft", "rate": null, "minimum": null },
-      "deck": { "method": "sqft", "rate": null, "minimum": null },
-      "fence": { "method": "linear", "rate": null, "minimum": null },
-      "commercial": { "method": "sqft", "rate": null, "minimum": null },
-      "stain-removal": { "method": "sqft", "rate": null, "minimum": null }
+      "house-soft-wash": {
+        "method": "sqft",
+        "rate": null,
+        "minimum": null
+      },
+      "roof-soft-wash": {
+        "method": "sqft",
+        "rate": null,
+        "minimum": null
+      },
+      "driveway-concrete": {
+        "method": "sqft",
+        "rate": null,
+        "minimum": null
+      },
+      "sidewalk-patio": {
+        "method": "sqft",
+        "rate": null,
+        "minimum": null
+      },
+      "deck": {
+        "method": "sqft",
+        "rate": null,
+        "minimum": null
+      },
+      "fence": {
+        "method": "linear",
+        "rate": null,
+        "minimum": null
+      },
+      "commercial": {
+        "method": "sqft",
+        "rate": null,
+        "minimum": null
+      },
+      "stain-removal": {
+        "method": "sqft",
+        "rate": null,
+        "minimum": null
+      }
     }
   },
-
   "scheduling": {
     "timezone": "America/Chicago",
     "placeholder": true,
     "placeholderNote": "These hours and time windows are PLACEHOLDERS so the booking flow works. Set the owner's real hours below and change 'placeholder' to false.",
     "businessHours": {
       "0": null,
-      "1": { "open": "08:00", "close": "17:00" },
-      "2": { "open": "08:00", "close": "17:00" },
-      "3": { "open": "08:00", "close": "17:00" },
-      "4": { "open": "08:00", "close": "17:00" },
-      "5": { "open": "08:00", "close": "17:00" },
-      "6": { "open": "08:00", "close": "17:00" }
+      "1": {
+        "open": "08:00",
+        "close": "17:00"
+      },
+      "2": {
+        "open": "08:00",
+        "close": "17:00"
+      },
+      "3": {
+        "open": "08:00",
+        "close": "17:00"
+      },
+      "4": {
+        "open": "08:00",
+        "close": "17:00"
+      },
+      "5": {
+        "open": "08:00",
+        "close": "17:00"
+      },
+      "6": {
+        "open": "08:00",
+        "close": "17:00"
+      }
     },
     "windows": [
-      { "id": "morning", "label": "Morning", "start": "08:00", "end": "12:00" },
-      { "id": "afternoon", "label": "Afternoon", "start": "12:00", "end": "17:00" },
-      { "id": "full-day", "label": "Full day", "start": "08:00", "end": "17:00", "fullDay": true }
+      {
+        "id": "morning",
+        "label": "Morning",
+        "start": "08:00",
+        "end": "12:00"
+      },
+      {
+        "id": "afternoon",
+        "label": "Afternoon",
+        "start": "12:00",
+        "end": "17:00"
+      },
+      {
+        "id": "full-day",
+        "label": "Full day",
+        "start": "08:00",
+        "end": "17:00",
+        "fullDay": true
+      }
     ],
     "leadDays": 1,
     "horizonDays": 90
   },
-
   "services": [
     {
       "id": "house-soft-wash",
@@ -70,9 +141,35 @@
       "measureLabel": "Exterior wall area to wash (sq ft)",
       "measureHelp": "This is the area of the exterior walls, roughly wall height × the distance around the house. It is NOT your home's floor area (the square footage on a listing). Not sure? Choose \"I'm not sure\" and we'll assess it.",
       "fields": [
-        { "key": "material", "label": "Siding material", "type": "select", "options": ["Vinyl", "Brick", "Stucco", "Painted wood", "Fiber cement", "Other / not sure"] },
-        { "key": "stories", "label": "Number of stories", "type": "select", "options": ["1", "2", "3 or more"] },
-        { "key": "access", "label": "Access issues (optional)", "type": "text", "placeholder": "Gates, steep yard, tight spaces, no water spigot..." }
+        {
+          "key": "material",
+          "label": "Siding material",
+          "type": "select",
+          "options": [
+            "Vinyl",
+            "Brick",
+            "Stucco",
+            "Painted wood",
+            "Fiber cement",
+            "Other / not sure"
+          ]
+        },
+        {
+          "key": "stories",
+          "label": "Number of stories",
+          "type": "select",
+          "options": [
+            "1",
+            "2",
+            "3 or more"
+          ]
+        },
+        {
+          "key": "access",
+          "label": "Access issues (optional)",
+          "type": "text",
+          "placeholder": "Gates, steep yard, tight spaces, no water spigot..."
+        }
       ]
     },
     {
@@ -83,10 +180,44 @@
       "measureLabel": "Roof surface area (sq ft)",
       "measureHelp": "This is the surface of the roof itself. It is usually larger than the house's floor area because of slope and overhangs, but it is not the same number. Not sure? Choose \"I'm not sure\" and we'll assess it.",
       "fields": [
-        { "key": "material", "label": "Roof material", "type": "select", "options": ["Asphalt shingle", "Metal", "Tile", "Other / not sure"] },
-        { "key": "stories", "label": "Number of stories", "type": "select", "options": ["1", "2", "3 or more"] },
-        { "key": "pitch", "label": "Roof slope", "type": "select", "options": ["Low / walkable", "Moderate", "Steep", "Not sure"] },
-        { "key": "access", "label": "Access issues (optional)", "type": "text", "placeholder": "Trees, power lines, tight spaces..." }
+        {
+          "key": "material",
+          "label": "Roof material",
+          "type": "select",
+          "options": [
+            "Asphalt shingle",
+            "Metal",
+            "Tile",
+            "Other / not sure"
+          ]
+        },
+        {
+          "key": "stories",
+          "label": "Number of stories",
+          "type": "select",
+          "options": [
+            "1",
+            "2",
+            "3 or more"
+          ]
+        },
+        {
+          "key": "pitch",
+          "label": "Roof slope",
+          "type": "select",
+          "options": [
+            "Low / walkable",
+            "Moderate",
+            "Steep",
+            "Not sure"
+          ]
+        },
+        {
+          "key": "access",
+          "label": "Access issues (optional)",
+          "type": "text",
+          "placeholder": "Trees, power lines, tight spaces..."
+        }
       ]
     },
     {
@@ -97,8 +228,23 @@
       "measureLabel": "Driveway / concrete area (sq ft)",
       "measureHelp": "Length × width of the area to clean. Use the calculator below if you'd rather enter dimensions.",
       "fields": [
-        { "key": "material", "label": "Surface material", "type": "select", "options": ["Concrete", "Stamped concrete", "Pavers", "Other / not sure"] },
-        { "key": "stainType", "label": "Specific stains (optional)", "type": "text", "placeholder": "Oil, rust, tire marks, mildew..." }
+        {
+          "key": "material",
+          "label": "Surface material",
+          "type": "select",
+          "options": [
+            "Concrete",
+            "Stamped concrete",
+            "Pavers",
+            "Other / not sure"
+          ]
+        },
+        {
+          "key": "stainType",
+          "label": "Specific stains (optional)",
+          "type": "text",
+          "placeholder": "Oil, rust, tire marks, mildew..."
+        }
       ]
     },
     {
@@ -109,8 +255,25 @@
       "measureLabel": "Sidewalk / patio area (sq ft)",
       "measureHelp": "Length × width of the area to clean. Use the calculator below if you'd rather enter dimensions.",
       "fields": [
-        { "key": "material", "label": "Surface material", "type": "select", "options": ["Concrete", "Pavers", "Brick", "Natural stone", "Tile", "Other / not sure"] },
-        { "key": "stainType", "label": "Specific stains (optional)", "type": "text", "placeholder": "Algae, rust, grease..." }
+        {
+          "key": "material",
+          "label": "Surface material",
+          "type": "select",
+          "options": [
+            "Concrete",
+            "Pavers",
+            "Brick",
+            "Natural stone",
+            "Tile",
+            "Other / not sure"
+          ]
+        },
+        {
+          "key": "stainType",
+          "label": "Specific stains (optional)",
+          "type": "text",
+          "placeholder": "Algae, rust, grease..."
+        }
       ]
     },
     {
@@ -121,8 +284,23 @@
       "measureLabel": "Deck surface area (sq ft)",
       "measureHelp": "Length × width of the deck floor. Railings and stairs can be mentioned in the notes.",
       "fields": [
-        { "key": "material", "label": "Deck material", "type": "select", "options": ["Pressure-treated wood", "Cedar / redwood", "Composite", "Other / not sure"] },
-        { "key": "access", "label": "Access issues (optional)", "type": "text", "placeholder": "Raised deck, furniture, plants..." }
+        {
+          "key": "material",
+          "label": "Deck material",
+          "type": "select",
+          "options": [
+            "Pressure-treated wood",
+            "Cedar / redwood",
+            "Composite",
+            "Other / not sure"
+          ]
+        },
+        {
+          "key": "access",
+          "label": "Access issues (optional)",
+          "type": "text",
+          "placeholder": "Raised deck, furniture, plants..."
+        }
       ]
     },
     {
@@ -133,7 +311,17 @@
       "measureLabel": "Fence length (linear feet)",
       "measureHelp": "Enter the total length of fence in feet and its average height. If both sides need cleaning, say so in the notes.",
       "fields": [
-        { "key": "material", "label": "Fence material", "type": "select", "options": ["Wood", "Vinyl", "Metal", "Other / not sure"] }
+        {
+          "key": "material",
+          "label": "Fence material",
+          "type": "select",
+          "options": [
+            "Wood",
+            "Vinyl",
+            "Metal",
+            "Other / not sure"
+          ]
+        }
       ]
     },
     {
@@ -144,9 +332,36 @@
       "measureLabel": "Area to clean (sq ft)",
       "measureHelp": "For buildings, estimate the exterior wall area; for parking lots, length × width of the paved area. Large or multiple areas? Choose \"I'm not sure\" and we'll arrange an assessment.",
       "fields": [
-        { "key": "areaType", "label": "What needs cleaning?", "type": "select", "options": ["Building exterior", "Parking lot", "Storefront / sidewalks", "Dumpster pad", "Other"] },
-        { "key": "material", "label": "Surface material", "type": "select", "options": ["Concrete", "Asphalt", "Brick", "Metal / siding", "Other / not sure"] },
-        { "key": "access", "label": "Access / timing notes (optional)", "type": "text", "placeholder": "After-hours only, gated, shared parking..." }
+        {
+          "key": "areaType",
+          "label": "What needs cleaning?",
+          "type": "select",
+          "options": [
+            "Building exterior",
+            "Parking lot",
+            "Storefront / sidewalks",
+            "Dumpster pad",
+            "Other"
+          ]
+        },
+        {
+          "key": "material",
+          "label": "Surface material",
+          "type": "select",
+          "options": [
+            "Concrete",
+            "Asphalt",
+            "Brick",
+            "Metal / siding",
+            "Other / not sure"
+          ]
+        },
+        {
+          "key": "access",
+          "label": "Access / timing notes (optional)",
+          "type": "text",
+          "placeholder": "After-hours only, gated, shared parking..."
+        }
       ]
     },
     {
@@ -157,36 +372,161 @@
       "measureLabel": "Stained area (sq ft)",
       "measureHelp": "Approximate size of the stained area. A small spot can be a few square feet.",
       "fields": [
-        { "key": "stainType", "label": "Type of stain", "type": "select", "options": ["Oil / grease", "Rust", "Mildew / algae", "Tire marks", "Paint / graffiti", "Other / not sure"] },
-        { "key": "material", "label": "Surface material", "type": "select", "options": ["Concrete", "Pavers", "Brick", "Siding", "Other / not sure"] }
+        {
+          "key": "stainType",
+          "label": "Type of stain",
+          "type": "select",
+          "options": [
+            "Oil / grease",
+            "Rust",
+            "Mildew / algae",
+            "Tire marks",
+            "Paint / graffiti",
+            "Other / not sure"
+          ]
+        },
+        {
+          "key": "material",
+          "label": "Surface material",
+          "type": "select",
+          "options": [
+            "Concrete",
+            "Pavers",
+            "Brick",
+            "Siding",
+            "Other / not sure"
+          ]
+        }
       ]
     }
   ],
-
   "serviceCards": [
-    { "title": "House & Siding Soft Washing", "icon": "home", "serviceIds": ["house-soft-wash"], "description": "A low-pressure wash that lifts dirt, mildew and algae from siding and exterior walls." },
-    { "title": "Roof Soft Washing", "icon": "roof", "serviceIds": ["roof-soft-wash"], "description": "Gentle cleaning for roof surfaces without blasting them with high pressure." },
-    { "title": "Driveway & Concrete Cleaning", "icon": "driveway", "serviceIds": ["driveway-concrete"], "description": "Pressure washing for driveways and concrete slabs to restore a clean, even look." },
-    { "title": "Sidewalk & Patio Cleaning", "icon": "sidewalk", "serviceIds": ["sidewalk-patio"], "description": "Fresh walkways and patios that boost curb appeal and feel safer underfoot." },
-    { "title": "Deck & Fence Cleaning", "icon": "deck", "serviceIds": ["deck", "fence"], "description": "Surface-appropriate cleaning for wood, composite and vinyl decks and fences." },
-    { "title": "Commercial Building & Parking Lot Cleaning", "icon": "building", "serviceIds": ["commercial"], "description": "Clean storefronts, buildings and parking areas for a better first impression." },
-    { "title": "Stain Removal", "icon": "sparkle", "serviceIds": ["stain-removal"], "description": "Targeted treatment for oil, rust, tire marks, mildew and other stubborn stains." }
+    {
+      "title": "House & Siding Soft Washing",
+      "icon": "home",
+      "serviceIds": [
+        "house-soft-wash"
+      ],
+      "description": "A low-pressure wash that lifts dirt, mildew and algae from siding and exterior walls."
+    },
+    {
+      "title": "Roof Soft Washing",
+      "icon": "roof",
+      "serviceIds": [
+        "roof-soft-wash"
+      ],
+      "description": "Gentle cleaning for roof surfaces without blasting them with high pressure."
+    },
+    {
+      "title": "Driveway & Concrete Cleaning",
+      "icon": "driveway",
+      "serviceIds": [
+        "driveway-concrete"
+      ],
+      "description": "Pressure washing for driveways and concrete slabs to restore a clean, even look."
+    },
+    {
+      "title": "Sidewalk & Patio Cleaning",
+      "icon": "sidewalk",
+      "serviceIds": [
+        "sidewalk-patio"
+      ],
+      "description": "Fresh walkways and patios that boost curb appeal and feel safer underfoot."
+    },
+    {
+      "title": "Deck & Fence Cleaning",
+      "icon": "deck",
+      "serviceIds": [
+        "deck",
+        "fence"
+      ],
+      "description": "Surface-appropriate cleaning for wood, composite and vinyl decks and fences."
+    },
+    {
+      "title": "Commercial Building & Parking Lot Cleaning",
+      "icon": "building",
+      "serviceIds": [
+        "commercial"
+      ],
+      "description": "Clean storefronts, buildings and parking areas for a better first impression."
+    },
+    {
+      "title": "Stain Removal",
+      "icon": "sparkle",
+      "serviceIds": [
+        "stain-removal"
+      ],
+      "description": "Targeted treatment for oil, rust, tire marks, mildew and other stubborn stains."
+    }
   ],
-
   "gallery": [
+    {
+      "id": "roof-brick-home",
+      "label": "Roof Cleaning – Brick Home",
+      "category": "Roof",
+      "description": "Before and after photos of a home roof. Tap a photo to enlarge it.",
+      "before": "img/roof1-before.jpg",
+      "after": [
+        "img/roof1-after.jpg"
+      ],
+      "compare": false
+    },
+    {
+      "id": "roof-cottage",
+      "label": "Roof Cleaning – Cottage",
+      "category": "Roof",
+      "description": "Before and after photos of a cottage roof from several angles. Tap any photo to enlarge it.",
+      "before": [
+        "img/cottage-before-1.jpg",
+        "img/cottage-before-2.jpg",
+        "img/cottage-before-3.jpg",
+        "img/cottage-before-4.jpg"
+      ],
+      "after": [
+        "img/cottage-after-1.jpg",
+        "img/cottage-after-2.jpg",
+        "img/cottage-after-3.jpg"
+      ],
+      "compare": false
+    },
     {
       "id": "curb-ledge",
       "label": "Curb & Sidewalk Cleaning",
       "category": "Sidewalk Cleaning",
       "description": "Before and after photos of a cleaned curb ledge and paved surface, from the business flyer. The 'before' and 'after' shots are different views, so they are shown side by side.",
       "before": "img/curb-before.jpg",
-      "after": ["img/curb-after-1.jpg", "img/curb-after-2.jpg"],
+      "after": [
+        "img/curb-after-1.jpg",
+        "img/curb-after-2.jpg"
+      ],
       "compare": false
     },
-    { "id": "driveway", "label": "Driveway Cleaning", "category": "Driveway", "description": "Add this project's before and after photos in config/site.config.json.", "before": null, "after": [], "compare": false },
-    { "id": "house", "label": "House Soft Wash", "category": "House", "description": "Add this project's before and after photos in config/site.config.json.", "before": null, "after": [], "compare": false },
-    { "id": "roof", "label": "Roof Washing", "category": "Roof", "description": "Add this project's before and after photos in config/site.config.json.", "before": null, "after": [], "compare": false },
-    { "id": "patio", "label": "Patio Cleaning", "category": "Patio", "description": "Add this project's before and after photos in config/site.config.json.", "before": null, "after": [], "compare": false },
-    { "id": "commercial", "label": "Commercial Surface Cleaning", "category": "Commercial", "description": "Add this project's before and after photos in config/site.config.json.", "before": null, "after": [], "compare": false }
+    {
+      "id": "driveway",
+      "label": "Driveway Cleaning",
+      "category": "Driveway",
+      "description": "Add this project's before and after photos in config/site.config.json.",
+      "before": null,
+      "after": [],
+      "compare": false
+    },
+    {
+      "id": "patio",
+      "label": "Patio Cleaning",
+      "category": "Patio",
+      "description": "Add this project's before and after photos in config/site.config.json.",
+      "before": null,
+      "after": [],
+      "compare": false
+    },
+    {
+      "id": "commercial",
+      "label": "Commercial Surface Cleaning",
+      "category": "Commercial",
+      "description": "Add this project's before and after photos in config/site.config.json.",
+      "before": null,
+      "after": [],
+      "compare": false
+    }
   ]
 }
