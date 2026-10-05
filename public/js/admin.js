@@ -74,6 +74,7 @@ async function act(fn, okMessage) {
 
 function draw() {
   const d = S.data;
+  const upcomingCount = confirmedRows().filter((r) => r.b.slot.date >= d.today).length;
   const needs = d.quotes.filter((q) => ['pending', 'proposed'].includes(q.bookings[0]?.status) || q.status === 'new');
   const setup = [];
   if (!CONFIG.notifications.email) setup.push(notice('warn', 'Email notifications are not set up. You will not be emailed about new requests or bookings, so check this dashboard regularly. Customers see their status on the website instead.'));
@@ -83,8 +84,8 @@ function draw() {
   const tab = (id, label, count) => h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === id), onClick: () => { S.tab = id; draw(); } }, label, count ? h('span', { class: 'count' }, count) : null);
   app.replaceChildren(
     ...[S.message, ...setup].filter(Boolean),
-    h('div', { class: 'tabs', role: 'tablist' }, tab('requests', 'Requests', needs.length), tab('schedule', 'Schedule & blocked dates')),
-    S.tab === 'requests' ? requestsView() : scheduleView());
+    h('div', { class: 'tabs', role: 'tablist' }, tab('requests', 'Requests', needs.length), tab('appointments', 'Confirmed appointments', upcomingCount), tab('blocks', 'Blocked dates')),
+    S.tab === 'requests' ? requestsView() : S.tab === 'appointments' ? appointmentsView() : blocksView());
   S.message = null;
 }
 // ---------- requests ----------
@@ -180,13 +181,47 @@ function bookingPanel(q, b, latest) {
     h('label', { class: 'check' }, f.full, 'Full-day job (blocks the whole day)'),
     h('div', { class: 'field' }, h('label', { for: f.msg.id }, 'Message to customer'), f.msg),
     h('div', { class: 'actions' },
-      b.status === 'pending' ? btn('Accept & confirm', 'btn-gold', 'accept', 'Appointment confirmed.') : null,
+      b.status === 'pending' ? btn('Confirm appointment', 'btn-gold', 'accept', 'Appointment confirmed. See it under Confirmed appointments.') : null,
       btn(b.status === 'proposed' ? 'Change proposed time' : 'Propose this time instead', 'btn-dark', 'propose', 'Alternative time sent to the customer.'),
       btn('Decline', 'btn-ghost', 'decline', 'Request declined.', 'Decline this request?')));
 }
 
-// ---------- schedule ----------
-function scheduleView() {
+// ---------- confirmed appointments ----------
+const tzName = new Intl.DateTimeFormat('en-US', { timeZone: CONFIG.scheduling.timezone, timeZoneName: 'longGeneric' }).formatToParts(new Date()).find((x) => x.type === 'timeZoneName').value;
+const confirmedRows = () => S.data.quotes
+  .filter((q) => q.bookings[0]?.status === 'confirmed')
+  .map((q) => ({ q, b: q.bookings[0] }))
+  .sort((x, y) => (x.b.slot.date + String(x.b.slot.start).padStart(4, '0')).localeCompare(y.b.slot.date + String(y.b.slot.start).padStart(4, '0')));
+
+function apptCard({ q, b }) {
+  const c = q.contact;
+  return h('article', { class: 'appt' },
+    h('div', { class: 'appt-when' },
+      h('strong', null, fmtDate(b.slot.date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })),
+      h('span', null, b.slot.fullDay ? 'Full day' : fmtRange(b.slot.start, b.slot.end), ` (${tzName})`)),
+    h('div', { class: 'appt-who' },
+      h('strong', null, c.name, ' · ', q.ref),
+      h('span', null, h('a', { href: `tel:${c.phone}` }, c.phone), c.email ? [' · ', h('a', { href: `mailto:${c.email}` }, c.email)] : null),
+      h('span', null, `${c.address}, ${c.zip}`),
+      h('span', { class: 'muted' }, q.items.map((i) => svcLabel(i.id)).join(', ')),
+      b.ownerMessage ? h('span', { class: 'muted' }, `Your message: ${b.ownerMessage}`) : null),
+    h('div', { class: 'appt-actions' },
+      h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onClick: () => { S.tab = 'requests'; S.filter = 'confirmed'; draw(); } }, 'View full request'),
+      h('button', { class: 'btn btn-danger btn-sm', type: 'button', disabled: S.busy ? true : null, onClick: () => confirm(`Cancel ${c.name}'s confirmed appointment? The time will open up again.`) && act(() => own('owner_booking_action', { p_id: b.id, p_action: 'cancel', p_slot: null, p_message: null }), 'Appointment cancelled.') }, 'Cancel appointment')));
+}
+
+function appointmentsView() {
+  const rows = confirmedRows();
+  const upcoming = rows.filter((r) => r.b.slot.date >= S.data.today);
+  const past = rows.filter((r) => r.b.slot.date < S.data.today).reverse();
+  return h('div', null,
+    h('h3', null, 'Upcoming confirmed appointments'),
+    upcoming.length ? h('div', { class: 'appt-list' }, upcoming.map(apptCard)) : h('p', { class: 'empty' }, 'No confirmed appointments yet. When you confirm a booking request, it will show up here.'),
+    past.length ? [h('h3', { class: 'spaced' }, 'Past appointments'), h('div', { class: 'appt-list' }, past.map(apptCard))] : null);
+}
+
+// ---------- blocked dates ----------
+function blocksView() {
   const d = S.data;
   const date = h('input', { id: 'bl-date', type: 'date', min: d.today, required: true });
   const start = h('input', { id: 'bl-start', type: 'time', value: '08:00' });
@@ -199,22 +234,19 @@ function scheduleView() {
 
   return h('div', { class: 'cols' },
     h('div', null,
-      h('h3', null, 'Confirmed appointments'),
-      d.appointments.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'table' }, h('thead', null, h('tr', null, ['Date', 'Time', 'Customer', 'Request'].map((t) => h('th', { scope: 'col' }, t)))),
-        h('tbody', null, d.appointments.map((a) => h('tr', null, h('td', null, fmtDate(a.date, { weekday: 'short', month: 'short', day: 'numeric' })), h('td', null, a.fullDay ? 'Full day' : fmtRange(a.start, a.end)), h('td', null, a.name), h('td', null, a.ref)))))) : h('p', { class: 'empty' }, 'No confirmed appointments.')),
-    h('div', null,
       h('h3', null, 'Block time off'),
+      h('p', { class: 'muted' }, 'Customers cannot book blocked times.'),
       h('form', { class: 'card', onSubmit: (e) => { e.preventDefault(); act(() => own('owner_add_block', { p_date: date.value || null, p_all_day: all.checked, p_start: all.checked ? null : start.value, p_end: all.checked ? null : end.value, p_reason: reason.value }), 'Time blocked.'); } },
         h('div', { class: 'field' }, h('label', { for: 'bl-date' }, 'Date'), date),
         h('label', { class: 'check' }, all, 'Block the whole day'),
         h('div', { class: 'row' }, h('div', { class: 'field' }, h('label', { for: 'bl-start' }, 'From'), start), h('div', { class: 'field' }, h('label', { for: 'bl-end' }, 'To'), end)),
         h('div', { class: 'field' }, h('label', { for: 'bl-reason' }, 'Reason (private)'), reason),
-        h('button', { class: 'btn btn-gold', type: 'submit' }, 'Block this time')),
+        h('button', { class: 'btn btn-gold', type: 'submit' }, 'Block this time'))),
+    h('div', null,
       h('h3', null, 'Blocked dates'),
       d.blocks.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'table' }, h('thead', null, h('tr', null, ['Date', 'Time', 'Reason', ''].map((t) => h('th', { scope: 'col' }, t)))),
         h('tbody', null, d.blocks.map((b) => h('tr', null, h('td', null, fmtDate(b.date, { weekday: 'short', month: 'short', day: 'numeric' })), h('td', null, b.start == null ? 'All day' : fmtRange(b.start, b.end)), h('td', null, b.reason || ''), h('td', null, h('button', { class: 'link-btn', type: 'button', 'aria-label': `Remove block on ${b.date}`, onClick: () => act(() => own('owner_remove_block', { p_id: b.id }), 'Block removed.') }, 'Remove'))))))) : h('p', { class: 'empty' }, 'No blocked dates.')));
 }
-
 $('#logout').addEventListener('click', async () => { await signOut(); S.data = null; loginView(); });
 $('#refresh').addEventListener('click', () => { app.replaceChildren(spinner()); load(); });
 load();

@@ -29,3 +29,11 @@
 .table th { background: var(--navy); color: #fff; font-size: 0.85rem; }
 .table-wrap { overflow-x: auto; }
 .empty { color: var(--muted); padding: 24px; text-align: center; background: #fff; border-radius: 12px; }
+
+.spaced { margin-top: 28px; }
+.appt-list { display: grid; gap: 12px; }
+.appt { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr) auto; gap: 16px; align-items: start; background: #fff; border: 1px solid var(--line); border-left: 6px solid var(--ok); border-radius: 14px; box-shadow: var(--shadow); padding: 16px 18px; }
+.appt-when, .appt-who { display: grid; gap: 2px; }
+.appt-when strong { font-size: 1.05rem; }
+.appt-actions { display: flex; flex-direction: column; gap: 8px; }
+@media (max-width: 760px) { .appt { grid-template-columns: 1fr; } .appt-actions { flex-direction: row; flex-wrap: wrap; } }

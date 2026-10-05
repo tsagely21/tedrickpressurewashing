@@ -176,10 +176,20 @@ async function ownerFlow(label, ref) {
   assert.ok(text.includes(ref) && text.includes('Pat Tester') && text.includes('Pending approval'));
   assert.ok((await ev('document.querySelectorAll(".rq img").length')) >= 1, 'uploaded photo visible to owner');
   await shot(`${label}-9-admin`);
-  await ev('T.clickText("Accept & confirm")');
+  assert.match(await ev('document.querySelector(".tab .count")?.parentElement.innerText || ""'), /Requests/);
+  await ev('T.clickText("Confirm appointment")');
   await until('document.querySelector(".notice.ok")', 'accepted', 10000);
-  await ev('T.click(".tab[aria-selected=false]")');
-  assert.match(await ev('document.querySelector("#app").innerText'), /Pat Tester/, 'appears in confirmed list');
+  // The new "Confirmed appointments" tab lists it with the customer's contact details.
+  assert.match(await ev('[...document.querySelectorAll(".tab")].map((t) => t.innerText).join("|")'), /Confirmed appointments\s*1/);
+  await ev('T.clickText("Confirmed appointments")');
+  await until('document.querySelector(".appt")', 'confirmed appointment card');
+  const appt = await ev('document.querySelector(".appt").innerText');
+  for (const s of ['Pat Tester', '225-555-0142', '12 Oak St', 'Cancel appointment']) assert.ok(appt.includes(s), 'appointment card shows ' + s);
+  await shot(`${label}-9b-confirmed-tab`);
+  // The Requests tab also has a Confirmed filter that lists it.
+  await ev('T.clickText("Requests")');
+  await ev('T.clickText("Confirmed", document.querySelector("[aria-label=\\"Filter requests\\"]"))');
+  await until('document.querySelector(".rq .status-pill.confirmed")', 'confirmed filter lists the request');
   // Customer now sees confirmation
   await goto(BASE + '/');
   await until('document.querySelector(".status-pill.confirmed")', 'customer sees confirmed', 10000);
