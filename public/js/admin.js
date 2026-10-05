@@ -4,7 +4,7 @@ import { fmtDate, fmtRange, fromMin } from './shared/dates.js';
 import { estimate, money } from './shared/pricing.js';
 
 const app = $('#app');
-const S = { data: null, urls: {}, tab: 'requests', filter: 'attention', message: null, busy: false };
+const S = { data: null, urls: {}, tab: 'attention', openId: null, message: null, busy: false };
 const own = (fn, args) => rpc(fn, args, { auth: true }); // owner calls carry the login token
 const svcLabel = (id) => CONFIG.services.find((s) => s.id === id)?.label || id;
 const svcDef = (id) => CONFIG.services.find((s) => s.id === id);
@@ -72,34 +72,39 @@ async function act(fn, okMessage) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// One set of categories. A request is "confirmed" when its status is Confirmed or it has a confirmed appointment.
+const latest = (q) => q.bookings[0];
+const isConfirmed = (q) => q.status === 'confirmed' || latest(q)?.status === 'confirmed';
+const CATEGORIES = [
+  ['attention', 'Needs attention', (q) => !isConfirmed(q) && q.status !== 'closed' && (q.status === 'new' || ['pending', 'proposed'].includes(latest(q)?.status))],
+  ['contacted', 'Contacted', (q) => q.status === 'contacted' && !isConfirmed(q)],
+  ['confirmed', 'Confirmed', isConfirmed],
+  ['all', 'All requests', () => true]
+];
+
 function draw() {
   const d = S.data;
-  const upcomingCount = confirmedRows().filter((r) => r.b.slot.date >= d.today).length;
-  const needs = d.quotes.filter((q) => ['pending', 'proposed'].includes(q.bookings[0]?.status) || q.status === 'new');
   const setup = [];
   if (!CONFIG.notifications.email) setup.push(notice('warn', 'Email notifications are not set up. You will not be emailed about new requests or bookings, so check this dashboard regularly. Customers see their status on the website instead.'));
   if (CONFIG.scheduling.placeholder) setup.push(notice('warn', 'Setup: booking hours and time windows in config/site.config.json are placeholders. Enter your real hours and set "placeholder" to false.'));
   if (!Object.values(CONFIG.pricing.services).some((r) => typeof r.rate === 'number')) setup.push(notice('info', 'No pricing rates are configured, so customers see “Submit for a free personalized quote.” Add rates in config/site.config.json to show estimates.'));
 
   const tab = (id, label, count) => h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === id), onClick: () => { S.tab = id; draw(); } }, label, count ? h('span', { class: 'count' }, count) : null);
+  const test = CATEGORIES.find((c) => c[0] === S.tab)?.[2];
   app.replaceChildren(
     ...[S.message, ...setup].filter(Boolean),
-    h('div', { class: 'tabs', role: 'tablist' }, tab('requests', 'Requests', needs.length), tab('appointments', 'Confirmed appointments', upcomingCount), tab('blocks', 'Blocked dates')),
-    S.tab === 'requests' ? requestsView() : S.tab === 'appointments' ? appointmentsView() : blocksView());
+    h('div', { class: 'tabs', role: 'tablist' },
+      CATEGORIES.map(([id, label, fn]) => tab(id, label, id === 'all' ? 0 : d.quotes.filter(fn).length)),
+      tab('blocks', 'Blocked dates', 0)),
+    S.tab === 'blocks' ? blocksView() : S.tab === 'confirmed' ? confirmedView() : requestList(test || (() => true)));
   S.message = null;
+  if (S.openId) { document.getElementById(`rq-${S.openId}`)?.scrollIntoView({ block: 'start' }); S.openId = null; }
 }
+
 // ---------- requests ----------
-function requestsView() {
-  const filters = [['attention', 'Needs attention'], ['confirmed', 'Confirmed'], ['all', 'All']];
-  const list = S.data.quotes.filter((q) => {
-    const b = q.bookings[0];
-    if (S.filter === 'confirmed') return b?.status === 'confirmed';
-    if (S.filter === 'attention') return ['pending', 'proposed'].includes(b?.status) || q.status === 'new';
-    return true;
-  });
-  return h('div', null,
-    h('div', { class: 'tabs', role: 'group', 'aria-label': 'Filter requests' }, filters.map(([id, l]) => h('button', { class: 'tab', 'aria-pressed': String(S.filter === id), 'aria-selected': String(S.filter === id), onClick: () => { S.filter = id; draw(); } }, l))),
-    list.length ? h('div', { class: 'req-list' }, list.map(requestCard)) : h('p', { class: 'empty' }, 'Nothing here yet.'));
+function requestList(test) {
+  const list = S.data.quotes.filter(test);
+  return list.length ? h('div', { class: 'req-list' }, list.map(requestCard)) : h('p', { class: 'empty' }, 'Nothing here yet.');
 }
 
 function measure(i) {
@@ -111,9 +116,9 @@ function measure(i) {
 function requestCard(q) {
   const b = q.bookings[0];
   const c = q.contact;
-  const open = b && ['pending', 'proposed'].includes(b.status);
+  const open = (b && ['pending', 'proposed'].includes(b.status)) || S.openId === q.id;
   const est = estimate(CONFIG, q.items);
-  return h('details', { class: 'rq', open: open || null },
+  return h('details', { class: 'rq', id: `rq-${q.id}`, open: open || null },
     h('summary', null,
       h('span', { class: 'who' }, c.name, ' · ', q.ref),
       h('span', { class: 'pills' },
@@ -130,8 +135,9 @@ function requestCard(q) {
         h('div', { class: 'box' }, h('h4', null, 'Estimate'),
           est.available ? [h('p', null, h('strong', null, money(est.total, CONFIG.pricing.currency))), h('ul', null, est.lines.map((l) => h('li', null, `${l.label}: ${money(l.amount, CONFIG.pricing.currency)}`)))] : h('p', null, 'No dollar estimate (', est.reason === 'needs-assessment' ? 'needs assessment' : 'no rates configured', ').'),
           h('label', { class: 'label', for: `st-${q.id}` }, 'Quote status'),
-          h('select', { id: `st-${q.id}`, onChange: (e) => act(() => own('owner_set_quote_status', { p_id: q.id, p_status: e.target.value }), 'Status updated.') },
-            ['new', 'contacted', 'closed'].map((s) => h('option', { value: s, selected: q.status === s }, s[0].toUpperCase() + s.slice(1)))))),
+          h('select', { id: `st-${q.id}`, disabled: b?.status === 'confirmed' ? true : null, onChange: (e) => act(() => own('owner_set_quote_status', { p_id: q.id, p_status: e.target.value }), 'Status updated.') },
+            ['new', 'contacted', 'confirmed', 'closed'].map((s) => h('option', { value: s, selected: q.status === s }, s[0].toUpperCase() + s.slice(1)))),
+          b?.status === 'confirmed' ? h('p', { class: 'muted' }, 'Has a confirmed appointment. Cancel the appointment to change this.') : null)),
       h('div', { class: 'box' }, h('h4', null, 'Services & measurements'),
         h('ul', null, q.items.map((i) => h('li', null, h('strong', null, svcLabel(i.id)), ` – ${measure(i)}; ${i.condition} dirt`,
           Object.entries(i.fields).length ? ` · ${svcDef(i.id).fields.filter((f) => i.fields[f.key]).map((f) => `${f.label.replace(' (optional)', '')}: ${i.fields[f.key]}`).join('; ')}` : '',
@@ -181,7 +187,7 @@ function bookingPanel(q, b, latest) {
     h('label', { class: 'check' }, f.full, 'Full-day job (blocks the whole day)'),
     h('div', { class: 'field' }, h('label', { for: f.msg.id }, 'Message to customer'), f.msg),
     h('div', { class: 'actions' },
-      b.status === 'pending' ? btn('Confirm appointment', 'btn-gold', 'accept', 'Appointment confirmed. See it under Confirmed appointments.') : null,
+      b.status === 'pending' ? btn('Confirm appointment', 'btn-gold', 'accept', 'Appointment confirmed. See it under Confirmed.') : null,
       btn(b.status === 'proposed' ? 'Change proposed time' : 'Propose this time instead', 'btn-dark', 'propose', 'Alternative time sent to the customer.'),
       btn('Decline', 'btn-ghost', 'decline', 'Request declined.', 'Decline this request?')));
 }
@@ -206,17 +212,19 @@ function apptCard({ q, b }) {
       h('span', { class: 'muted' }, q.items.map((i) => svcLabel(i.id)).join(', ')),
       b.ownerMessage ? h('span', { class: 'muted' }, `Your message: ${b.ownerMessage}`) : null),
     h('div', { class: 'appt-actions' },
-      h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onClick: () => { S.tab = 'requests'; S.filter = 'confirmed'; draw(); } }, 'View full request'),
+      h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onClick: () => { S.openId = q.id; S.tab = 'all'; draw(); } }, 'View full request'),
       h('button', { class: 'btn btn-danger btn-sm', type: 'button', disabled: S.busy ? true : null, onClick: () => confirm(`Cancel ${c.name}'s confirmed appointment? The time will open up again.`) && act(() => own('owner_booking_action', { p_id: b.id, p_action: 'cancel', p_slot: null, p_message: null }), 'Appointment cancelled.') }, 'Cancel appointment')));
 }
 
-function appointmentsView() {
+function confirmedView() {
   const rows = confirmedRows();
   const upcoming = rows.filter((r) => r.b.slot.date >= S.data.today);
   const past = rows.filter((r) => r.b.slot.date < S.data.today).reverse();
+  const unscheduled = S.data.quotes.filter((q) => q.status === 'confirmed' && latest(q)?.status !== 'confirmed');
   return h('div', null,
     h('h3', null, 'Upcoming confirmed appointments'),
     upcoming.length ? h('div', { class: 'appt-list' }, upcoming.map(apptCard)) : h('p', { class: 'empty' }, 'No confirmed appointments yet. When you confirm a booking request, it will show up here.'),
+    unscheduled.length ? [h('h3', { class: 'spaced' }, 'Marked confirmed (no appointment time in the system)'), h('div', { class: 'req-list' }, unscheduled.map(requestCard))] : null,
     past.length ? [h('h3', { class: 'spaced' }, 'Past appointments'), h('div', { class: 'appt-list' }, past.map(apptCard))] : null);
 }
 

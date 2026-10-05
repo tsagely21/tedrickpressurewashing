@@ -176,20 +176,36 @@ async function ownerFlow(label, ref) {
   assert.ok(text.includes(ref) && text.includes('Pat Tester') && text.includes('Pending approval'));
   assert.ok((await ev('document.querySelectorAll(".rq img").length')) >= 1, 'uploaded photo visible to owner');
   await shot(`${label}-9-admin`);
-  assert.match(await ev('document.querySelector(".tab .count")?.parentElement.innerText || ""'), /Requests/);
+  const tabs = () => ev('[...document.querySelectorAll(".tab")].map((t) => t.innerText.trim()).join("|")');
+  assert.equal(await tabs(), 'Needs attention1|Contacted|Confirmed|All requests|Blocked dates');
+
+  // Quote status: Contacted moves it into the Contacted category
+  await ev('document.querySelector("select[id^=st-]").value = "contacted"; document.querySelector("select[id^=st-]").dispatchEvent(new Event("change"))');
+  await until('document.querySelector(".notice.ok")', 'status updated');
+  await ev('T.clickText("Contacted")');
+  await until('document.querySelector(".rq")', 'contacted category lists the request');
+  assert.ok((await ev('document.querySelector(".req-list").innerText')).includes(ref));
+  assert.deepEqual(await ev('[...document.querySelectorAll("select[id^=st-] option")].map((o) => o.textContent)'), ['New', 'Contacted', 'Confirmed', 'Closed']);
+
+  // Confirm the appointment (its booking is still pending, so it is also under Needs attention)
+  await ev('T.clickText("Needs attention")');
   await ev('T.clickText("Confirm appointment")');
   await until('document.querySelector(".notice.ok")', 'accepted', 10000);
-  // The new "Confirmed appointments" tab lists it with the customer's contact details.
-  assert.match(await ev('[...document.querySelectorAll(".tab")].map((t) => t.innerText).join("|")'), /Confirmed appointments\s*1/);
-  await ev('T.clickText("Confirmed appointments")');
+  assert.equal(await tabs(), 'Needs attention|Contacted|Confirmed1|All requests|Blocked dates', 'moved out of attention/contacted into Confirmed');
+
+  // ONE Confirmed category lists it, with the customer's contact details
+  await ev('T.clickText("Confirmed")');
   await until('document.querySelector(".appt")', 'confirmed appointment card');
   const appt = await ev('document.querySelector(".appt").innerText');
   for (const s of ['Pat Tester', '225-555-0142', '12 Oak St', 'Cancel appointment']) assert.ok(appt.includes(s), 'appointment card shows ' + s);
   await shot(`${label}-9b-confirmed-tab`);
-  // The Requests tab also has a Confirmed filter that lists it.
-  await ev('T.clickText("Requests")');
-  await ev('T.clickText("Confirmed", document.querySelector("[aria-label=\\"Filter requests\\"]"))');
-  await until('document.querySelector(".rq .status-pill.confirmed")', 'confirmed filter lists the request');
+
+  // The quote's status now reads Confirmed (and is locked while the appointment stands)
+  await ev('T.clickText("View full request")');
+  await until('document.querySelector("select[id^=st-]")', 'full request opens');
+  assert.equal(await ev('document.querySelector("select[id^=st-]").value'), 'confirmed');
+  assert.equal(await ev('document.querySelector("select[id^=st-]").disabled'), true);
+
   // Customer now sees confirmation
   await goto(BASE + '/');
   await until('document.querySelector(".status-pill.confirmed")', 'customer sees confirmed', 10000);

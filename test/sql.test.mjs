@@ -219,6 +219,23 @@ test('blocked dates stop bookings and cannot be placed over a confirmed appointm
   await rejects(owner('owner_add_block', { p_date: day, p_all_day: false, p_start: '09:00', p_end: '10:00', p_reason: '' }), /confirmed appointment/i);
 });
 
+test('quote status: confirming an appointment marks the quote Confirmed; cancelling returns it to Contacted; owner can set any status', async () => {
+  const day = await openDay(8);
+  const q = await newQuote();
+  const statusOf = async () => (await owner('owner_overview')).quotes.find((x) => x.id === q.id).status;
+  assert.equal(await statusOf(), 'new');
+  await owner('owner_set_quote_status', { p_id: q.id, p_status: 'contacted' });
+  assert.equal(await statusOf(), 'contacted');
+  const b = (await book(q.token, day, 'morning')).booking;
+  await accept(b.id);
+  assert.equal(await statusOf(), 'confirmed');
+  await owner('owner_booking_action', { p_id: b.id, p_action: 'cancel', p_slot: null, p_message: null });
+  assert.equal(await statusOf(), 'contacted');
+  await owner('owner_set_quote_status', { p_id: q.id, p_status: 'confirmed' });
+  assert.equal(await statusOf(), 'confirmed');
+  await rejects(owner('owner_set_quote_status', { p_id: q.id, p_status: 'bogus' }), /invalid status/i);
+});
+
 test('owner overview contains requests, photos and appointments; deleting a quote removes its bookings', async () => {
   const o = await owner('owner_overview');
   assert.ok(o.quotes.length > 5 && o.appointments.length > 0);

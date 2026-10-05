@@ -37,11 +37,14 @@ create table if not exists public.quotes (
   ref text not null unique,
   token text not null unique,
   created_at timestamptz not null default now(),
-  status text not null default 'new' check (status in ('new', 'contacted', 'closed')),
+  status text not null default 'new' check (status in ('new', 'contacted', 'confirmed', 'closed')),
   data jsonb not null,
   submitter text
 );
 create index if not exists quotes_created_idx on public.quotes (created_at desc);
+-- Existing installs: allow the 'confirmed' status (idempotent).
+alter table public.quotes drop constraint if exists quotes_status_check;
+alter table public.quotes add constraint quotes_status_check check (status in ('new', 'contacted', 'confirmed', 'closed'));
 
 create table if not exists public.photos (
   id bigint generated always as identity primary key,
@@ -179,6 +182,7 @@ begin
   exception when exclusion_violation then
     perform fail('That time overlaps a confirmed appointment.');
   end;
+  update quotes set status = 'confirmed' where id = b.quote_id;
   return booking_json(b);
 end $$;
 
@@ -425,7 +429,7 @@ create or replace function public.owner_set_quote_status(p_id uuid, p_status tex
 language plpgsql security definer set search_path = public as $$
 begin
   perform require_owner();
-  if p_status not in ('new', 'contacted', 'closed') then perform fail('Invalid status.'); end if;
+  if p_status not in ('new', 'contacted', 'confirmed', 'closed') then perform fail('Invalid status.'); end if;
   update quotes set status = p_status where id = p_id;
 end $$;
 
@@ -493,6 +497,7 @@ begin
   else
     if b.status <> 'confirmed' then perform fail('Only confirmed appointments can be cancelled.'); end if;
     update bookings set status = 'cancelled', owner_message = msg, updated_at = now() where id = b.id returning * into b;
+    update quotes set status = 'contacted' where id = b.quote_id and status = 'confirmed';
   end if;
   return jsonb_build_object('booking', booking_json(b));
 end $$;
@@ -545,6 +550,10 @@ begin
   perform (now() at time zone (p_scheduling ->> 'timezone'));  -- raises if the time zone is unknown
   update settings set scheduling = p_scheduling, updated_at = now() where id = 1;
 end $$;
+
+-- Appointments confirmed before the 'confirmed' status existed: bring their quotes in line.
+update public.quotes set status = 'confirmed'
+ where status in ('new', 'contacted') and exists (select 1 from public.bookings b where b.quote_id = quotes.id and b.status = 'confirmed');
 
 -- ============================================================ photo storage (private bucket)
 
