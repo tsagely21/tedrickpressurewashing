@@ -77,11 +77,13 @@ async function customerFlow(label, metrics) {
   await shot(`${label}-1-hero`);
 
   // Gallery: cards, arrows, viewer
-  assert.equal(await ev('document.querySelectorAll(".g-card").length'), 6);
-  const before = await ev('document.querySelector("#gallery-track").scrollLeft');
-  await ev('T.click("#gal-next")');
-  await until(`document.querySelector("#gallery-track").scrollLeft > ${before}`, 'gallery arrow scroll');
-  await ev('document.querySelector("#gallery-track").scrollTo(0,0)');
+  assert.equal(await ev('document.querySelectorAll(".g-card").length'), 2);
+  if (await ev('document.querySelector("#gallery-track").scrollWidth > document.querySelector("#gallery-track").clientWidth + 8')) {
+    const before = await ev('document.querySelector("#gallery-track").scrollLeft');
+    await ev('T.click("#gal-next")');
+    await until(`document.querySelector("#gallery-track").scrollLeft > ${before}`, 'gallery arrow scroll');
+    await ev('document.querySelector("#gallery-track").scrollTo(0,0)');
+  }
   // Cottage roof project (second card): several before/after photos, each opens full size
   await ev('T.click(".g-card:nth-child(2)")');
   await until('document.querySelector("#viewer").open', 'viewer opens');
@@ -93,28 +95,27 @@ async function customerFlow(label, metrics) {
   await key('Escape');
   await until('!document.querySelector(".lightbox").open', 'Escape closes the enlarged photo');
   await ev('document.querySelector("#viewer").close()');
-  // Curb project (third card): before + two after photos
-  await ev('T.click(".g-card:nth-child(3)")');
+  // Brick home project (first card): one before + one after photo
+  await ev('T.click(".g-card:nth-child(1)")');
   await until('document.querySelector("#viewer").open', 'viewer opens');
-  assert.equal(await ev('document.querySelectorAll("#viewer-body img").length'), 3, 'before + two after photos');
+  assert.equal(await ev('document.querySelectorAll("#viewer-body img").length'), 2, 'before + after photos');
   await sleep(300);
   await shot(`${label}-2-viewer`);
   await key('ArrowRight');
-  await until('document.querySelector("#viewer-title").textContent === "Driveway Cleaning"', 'next project via keyboard');
-  assert.ok((await ev('document.querySelector("#viewer-body").innerText')).includes('photo placeholder') || (await ev('document.querySelectorAll("#viewer-body .placeholder").length')) === 2, 'placeholders labeled');
+  await until('document.querySelector("#viewer-title").textContent.includes("Cottage")', 'next project via keyboard');
   await key('Escape');
   await until('!document.querySelector("#viewer").open', 'Escape closes viewer');
 
   // The draggable slider is used only for projects flagged compare:true (same-view photos). Flip one in-page to test it.
-  await ev('import("/js/util.js").then((m) => { m.CONFIG.gallery[2].compare = true; })');
-  await ev('T.click(".g-card:nth-child(3)")');
+  await ev('import("/js/util.js").then((m) => { m.CONFIG.gallery[0].compare = true; })');
+  await ev('T.click(".g-card:nth-child(1)")');
   await until('document.querySelector("#viewer .compare input[type=range]")', 'slider renders for compare:true');
   await ev('T.type("#viewer .compare input[type=range]", "80")');
   assert.equal(await ev('document.querySelector("#viewer .compare").style.getPropertyValue("--pos")'), '80%', 'slider moves');
   await sleep(300);
   await shot(`${label}-2b-slider`);
   await ev('document.querySelector("#viewer").close()');
-  await ev('import("/js/util.js").then((m) => { m.CONFIG.gallery[2].compare = false; })');
+  await ev('import("/js/util.js").then((m) => { m.CONFIG.gallery[0].compare = false; })');
 
   // Service card pre-selects services in the quote builder
   await ev('T.clickText("Get a Quote", document.querySelectorAll(".s-card")[4])');

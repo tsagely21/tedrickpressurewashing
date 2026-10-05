@@ -113,6 +113,13 @@ function measure(i) {
   return `${Number(i.areaSqft).toLocaleString()} sq ft${i.length && i.width ? ` (${i.length} × ${i.width} ft)` : ''}`;
 }
 
+function deleteButton(q, cls, stop) {
+  return h('button', { class: cls, type: 'button', onClick: (e) => {
+    if (stop) { e.preventDefault(); e.stopPropagation(); }
+    if (confirm(`Permanently delete request ${q.ref} from ${q.contact.name}, including its photos and bookings?`)) act(async () => { await removePhotos(q.photos.map((p) => p.path)); await own('owner_delete_quote', { p_id: q.id }); }, 'Request deleted.');
+  } }, 'Delete');
+}
+
 function requestCard(q) {
   const b = q.bookings[0];
   const c = q.contact;
@@ -123,7 +130,8 @@ function requestCard(q) {
       h('span', { class: 'who' }, c.name, ' · ', q.ref),
       h('span', { class: 'pills' },
         q.status === 'new' ? h('span', { class: 'status-pill small pill-new' }, 'New') : null,
-        b ? h('span', { class: `status-pill small ${b.status}` }, LABELS[b.status]) : h('span', { class: 'sub' }, 'No booking requested')),
+        b ? h('span', { class: `status-pill small ${b.status}` }, LABELS[b.status]) : h('span', { class: 'sub' }, 'No booking requested'),
+        deleteButton(q, 'btn btn-danger btn-sm', true)),
       h('span', { class: 'sub' }, `${new Date(q.createdAt).toLocaleString('en-US', { timeZone: CONFIG.scheduling.timezone, dateStyle: 'medium', timeStyle: 'short' })} · ${q.items.map((i) => svcLabel(i.id)).join(', ')}`)),
     h('div', { class: 'req-body' },
       h('div', { class: 'cols' },
@@ -147,7 +155,7 @@ function requestCard(q) {
         h('div', { class: 'photos' }, q.photos.map((p) => h('a', { href: S.urls[p.path], target: '_blank', rel: 'noopener' }, h('img', { src: S.urls[p.path], alt: `Customer photo ${p.name || ''}`, loading: 'lazy' }))))) : null,
       q.bookings.length ? h('div', { class: 'box' }, h('h4', null, 'Booking'), q.bookings.map((bk, n) => bookingPanel(q, bk, n === 0))) : null,
       q.status === 'confirmed' && latest(q)?.status !== 'confirmed' ? h('div', { class: 'box' }, h('h4', null, 'Schedule appointment'), h('p', { class: 'muted' }, 'Pick the date and time. It is blocked on the customer calendar as soon as you save.'), scheduleForm(q)) : null,
-      h('div', { class: 'actions' }, h('button', { class: 'link-btn', type: 'button', onClick: () => confirm(`Permanently delete request ${q.ref} from ${c.name}, including its photos and bookings?`) && act(async () => { await removePhotos(q.photos.map((p) => p.path)); await own('owner_delete_quote', { p_id: q.id }); }, 'Request deleted.') }, 'Delete this request'))));
+      h('div', { class: 'actions' }, deleteButton(q, 'btn btn-danger btn-sm', false))));
 }
 
 function bookingPanel(q, b, latest) {

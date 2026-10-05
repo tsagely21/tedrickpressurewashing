@@ -488,45 +488,6 @@
         "img/cottage-after-3.jpg"
       ],
       "compare": false
-    },
-    {
-      "id": "curb-ledge",
-      "label": "Curb & Sidewalk Cleaning",
-      "category": "Sidewalk Cleaning",
-      "description": "Before and after photos of a cleaned curb ledge and paved surface, from the business flyer. The 'before' and 'after' shots are different views, so they are shown side by side.",
-      "before": "img/curb-before.jpg",
-      "after": [
-        "img/curb-after-1.jpg",
-        "img/curb-after-2.jpg"
-      ],
-      "compare": false
-    },
-    {
-      "id": "driveway",
-      "label": "Driveway Cleaning",
-      "category": "Driveway",
-      "description": "Add this project's before and after photos in config/site.config.json.",
-      "before": null,
-      "after": [],
-      "compare": false
-    },
-    {
-      "id": "patio",
-      "label": "Patio Cleaning",
-      "category": "Patio",
-      "description": "Add this project's before and after photos in config/site.config.json.",
-      "before": null,
-      "after": [],
-      "compare": false
-    },
-    {
-      "id": "commercial",
-      "label": "Commercial Surface Cleaning",
-      "category": "Commercial",
-      "description": "Add this project's before and after photos in config/site.config.json.",
-      "before": null,
-      "after": [],
-      "compare": false
     }
   ]
 }
