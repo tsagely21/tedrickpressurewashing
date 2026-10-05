@@ -85,7 +85,7 @@ const CATEGORIES = [
 function draw() {
   const d = S.data;
   const setup = [];
-  if (!CONFIG.notifications.email) setup.push(notice('warn', 'Email notifications are not set up. You will not be emailed about new requests or bookings, so check this dashboard regularly. Customers see their status on the website instead.'));
+  if (!CONFIG.notifications.ownerEmail?.endpoint) setup.push(notice('warn', 'Owner email alerts are not set up, so you will not be emailed about new requests or bookings. Check this dashboard regularly.'));
   if (CONFIG.scheduling.placeholder) setup.push(notice('warn', 'Setup: booking hours and time windows in config/site.config.json are placeholders. Enter your real hours and set "placeholder" to false.'));
   if (!Object.values(CONFIG.pricing.services).some((r) => typeof r.rate === 'number')) setup.push(notice('info', 'No pricing rates are configured, so customers see “Submit for a free personalized quote.” Add rates in config/site.config.json to show estimates.'));
 

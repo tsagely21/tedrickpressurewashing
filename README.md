@@ -66,7 +66,8 @@ the Supabase API. Needs Chrome or Edge installed for the browser part.
 
 ## Known limitations
 
-- **No email notifications yet.** The owner must check the dashboard; customers check their status link. The site says so.
-  (When email is added, set `notifications.email` to `true` in the config.)
+- **Owner emails** go through Formspree (`notifications.ownerEmail.endpoint` in the config): every new quote request, booking request and proposal reply
+  sends a summary. It is best effort: if Formspree is down the request is still saved and shows in the dashboard.
+- **Customers are not emailed.** They check their private status link, and the site says so (`notifications.customerEmail` stays `false`).
 - Spam protection is a hidden field, size limits, and a per-IP limit of 10 quote requests/hour (best effort).
 - Supabase's free plan pauses projects after about a week of no activity, which would take booking offline.

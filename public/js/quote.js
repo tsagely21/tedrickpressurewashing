@@ -1,5 +1,6 @@
 import { CONFIG, $, h, icon, spinner, notice } from './util.js';
 import { rpc, uploadPhoto } from './supabase.js';
+import { notifyOwner } from './notify.js';
 import { estimate, money } from './shared/pricing.js';
 
 const STEPS = ['Property & services', 'Measurements', 'Photos & contact', 'Review'];
@@ -362,6 +363,7 @@ async function submit() {
     if (files.length) {
       try { await rpc('attach_photos', { p_token: res.token, p_files: files }); } catch { photosFailed += files.length; }
     }
+    emailOwnerAboutQuote(res.ref, files.length, photosFailed);
     state.submitting = false;
     state.submitted = { ref: res.ref, token: res.token, estimate: estimate(CONFIG, payloadItems()), photosFailed };
     try { localStorage.setItem('tm_request', JSON.stringify({ token: res.token, ref: res.ref })); } catch { /* storage unavailable */ }
@@ -378,6 +380,29 @@ async function submit() {
   }
 }
 
+// Email the owner a summary of the new request (best effort; the request is already saved).
+function emailOwnerAboutQuote(ref, photoCount, photosFailed) {
+  const c = state.contact;
+  const est = estimate(CONFIG, payloadItems());
+  const lines = selectedServices().map((s) => {
+    const it = state.items[s.id];
+    const extra = s.fields.map((f) => it.fields[f.key] && `${f.label.replace(' (optional)', '')}: ${it.fields[f.key]}`).filter(Boolean).join('; ');
+    return `- ${s.label}: ${measureText(it)}, ${it.condition} dirt${extra ? ' (' + extra + ')' : ''}${it.notes.trim() ? ' - Notes: ' + it.notes.trim() : ''}`;
+  });
+  const contactPref = { phone: 'phone call', text: 'text message', email: 'email' }[c.preferred];
+  const message = [
+    `New quote request ${ref}`,
+    '',
+    `Name: ${c.name}`, `Phone: ${c.phone}`, `Email: ${c.email || 'not provided'}`, `Address: ${c.address}, ${c.zip}`,
+    `Prefers: ${contactPref}`, `Property: ${state.propertyType}`,
+    '', 'Services:', ...lines,
+    state.notes.trim() ? `\nNotes: ${state.notes.trim()}` : '',
+    `\nPhotos: ${photoCount} uploaded${photosFailed ? ` (${photosFailed} failed to upload)` : ''}`,
+    est.available ? `Estimate shown to customer: ${money(est.total, CONFIG.pricing.currency)}` : 'Estimate: none shown (needs a personalized quote)'
+  ].join('\n');
+  notifyOwner(`New quote request ${ref} from ${c.name}`, message, { name: c.name, phone: c.phone, ...(c.email ? { email: c.email } : {}), reference: ref });
+}
+
 function successView() {
   const r = state.submitted;
   const link = `${location.origin}/?request=${r.token}#booking`;
@@ -388,7 +413,7 @@ function successView() {
     h('p', { class: 'muted' }, 'We’ll review your details and follow up using your preferred contact method.'),
     estimateBlock(r.estimate),
     r.photosFailed ? notice('warn', `Your request was saved, but ${r.photosFailed} photo${r.photosFailed > 1 ? 's' : ''} could not be uploaded. You can send photos when we contact you.`) : null,
-    notice('info', CONFIG.notifications.email ? 'Save this link to check your booking status any time.' : 'Save this link to check your booking status. Email updates are not turned on yet, so this page is where you will see changes.'),
+    notice('info', CONFIG.notifications.customerEmail ? 'Save this link to check your booking status any time.' : 'Save this link to check your booking status. Email updates are not turned on yet, so this page is where you will see changes.'),
     h('p', null, h('a', { href: link }, link)),
     h('div', { class: 'hero-actions center' },
       h('a', { class: 'btn btn-gold btn-lg', href: '#booking' }, icon('right'), 'Next: request a booking time'),

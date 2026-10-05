@@ -53,6 +53,9 @@ const shot = async (name) => { await overflowCheck(name); writeFileSync(join(SHO
 const goto = async (url) => { await send('Page.navigate', { url }); await sleep(300); await until('document.readyState === "complete"', 'load ' + url); };
 const key = (k, code) => send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code: code || k, windowsVirtualKeyCode: { Escape: 27, ArrowRight: 39, ArrowLeft: 37 }[k] }).then(() => send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: code || k }));
 
+// Messages the site sent to the (fake) Formspree endpoint, i.e. the emails the owner would receive.
+const ownerEmails = () => ev('fetch("/__formspree").then((r) => r.json())');
+
 // What a customer would see: the public availability calendar.
 const openDays = () => ev('fetch("/rest/v1/rpc/get_availability", { method: "POST", headers: { apikey: "x", "Content-Type": "application/json" }, body: "{}" }).then((r) => r.json()).then((a) => a.days)');
 
@@ -154,6 +157,11 @@ async function customerFlow(label, metrics) {
   await until('document.querySelector(".success .ref")', 'submit success', 15000);
   const ref = await ev('document.querySelector(".success .ref").textContent');
   console.log('  quote submitted', ref);
+  // The owner is emailed (via Formspree) with the customer's details
+  await until(`fetch("/__formspree").then((r) => r.json()).then((a) => a.some((m) => m._subject.includes("${ref}")))`, 'owner emailed about the new quote');
+  const mail = (await ownerEmails()).find((m) => m._subject.includes(ref));
+  for (const s of ['Pat Tester', '225-555-0142', 'pat@example.com', '12 Oak St', 'Driveway & concrete cleaning', '500 sq ft', 'Gate code 1234', 'Photos: 1 uploaded', '/admin/']) assert.ok(mail.message.includes(s), 'owner email includes ' + s);
+  assert.equal(mail.email, 'pat@example.com', 'customer email set so replies go to them');
   await shot(`${label}-6-success`);
 
   // Booking: calendar, window, pending status
@@ -167,6 +175,9 @@ async function customerFlow(label, metrics) {
   await ev('T.clickText("Request This Time")');
   await until('document.querySelector(".status-pill.pending")', 'pending status', 10000);
   assert.match(await ev('document.querySelector("#booking-panel").innerText'), /Pending owner approval/);
+  await until(`fetch("/__formspree").then((r) => r.json()).then((a) => a.some((m) => m._subject.startsWith("Booking request ${ref}")))`, 'owner emailed about the booking request');
+  const bookingMail = (await ownerEmails()).find((m) => m._subject.startsWith('Booking request ' + ref));
+  for (const s of ['Pat Tester', 'Pending owner approval', 'Driveway & concrete cleaning', 'Central Time']) assert.ok(bookingMail.message.includes(s), 'booking email includes ' + s);
   assert.doesNotMatch(await ev('document.querySelector("#booking-panel").innerText'), /Confirmed/);
   await shot(`${label}-8-pending`);
   return ref;

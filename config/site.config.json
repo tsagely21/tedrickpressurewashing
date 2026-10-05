@@ -7,8 +7,9 @@
   },
 
   "notifications": {
-    "email": false,
-    "note": "Set to true only after email notifications are actually set up. While false, the site tells customers to check their status link."
+    "ownerEmail": { "provider": "formspree", "endpoint": "https://formspree.io/f/mkjowlbr" },
+    "customerEmail": false,
+    "note": "ownerEmail: every quote request, booking request and proposal reply also emails the owner through this Formspree form (remove the endpoint to turn it off). customerEmail: set to true only if customers are ever emailed; while false the site tells them to check their status link."
   },
 
   "business": {

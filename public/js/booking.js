@@ -1,5 +1,6 @@
 import { CONFIG, $, h, icon, spinner, notice } from './util.js';
 import { rpc } from './supabase.js';
+import { notifyOwner } from './notify.js';
 import { addDays, fmtDate, fmtRange, pad, toMin, weekday } from './shared/dates.js';
 
 const KEY = 'tm_request';
@@ -64,7 +65,7 @@ function statusView(b) {
   const link = h('p', { class: 'muted' }, 'Bookmark this page to check back: ', h('a', { href: `/?request=${state.token}#booking` }, 'your request link'));
   const refreshBtn = h('button', { class: 'link-btn', type: 'button', onClick: refresh }, 'Check for updates');
   const msg = b.ownerMessage && notice('info', `Message from the owner: ${b.ownerMessage}`);
-  const demo = !CONFIG.notifications.email && notice('info', 'Email updates are not turned on yet. Bookmark this page and check back, or call us.');
+  const demo = !CONFIG.notifications.customerEmail && notice('info', 'Email updates are not turned on yet. Bookmark this page and check back, or call us.');
   const act = (label, kind, fn) => h('button', { class: `btn ${kind}`, type: 'button', disabled: state.busy, onClick: fn }, state.busy ? spinner() : null, label);
   const err = state.error && notice('err', state.error);
   let box;
@@ -91,7 +92,11 @@ async function respond(action, body) {
   draw();
   try {
     if (action === 'cancel') await rpc('cancel_booking', { p_token: state.token });
-    else await rpc('respond_proposal', { p_token: state.token, p_action: body.action });
+    else {
+      await rpc('respond_proposal', { p_token: state.token, p_action: body.action });
+      const who = `${state.status.name} (${state.ref})`;
+      notifyOwner(`Customer ${body.action === 'accept' ? 'accepted' : 'declined'} the proposed time - ${state.ref}`, `${who} ${body.action === 'accept' ? 'ACCEPTED' : 'DECLINED'} the time you proposed.`, { reference: state.ref });
+    }
     state.busy = false;
     await refresh();
   } catch (err) { state.busy = false; state.error = err.message; await refresh(); state.error = ''; }
@@ -168,6 +173,11 @@ async function submit() {
   draw();
   try {
     await rpc('request_booking', { p_token: state.token, p_date: state.date, p_window: state.windowId, p_note: state.note });
+    const win = CONFIG.scheduling.windows.find((w) => w.id === state.windowId);
+    const services = state.status.services.map((s) => s.label).join(', ');
+    notifyOwner(`Booking request ${state.ref} - ${fmtDate(state.date)}`,
+      [`New booking request for ${state.status.name} (${state.ref})`, '', `Requested: ${fmtDate(state.date)}, ${win ? win.label.toLowerCase() : state.windowId} (Central Time)`, `Services: ${services}`, state.note.trim() ? `Note: ${state.note.trim()}` : '', '', 'Status: Pending owner approval. Confirm, decline or propose another time in the dashboard.'].filter((l) => l !== '').join('\n'),
+      { reference: state.ref });
     state.busy = false; state.note = '';
     await refresh();
     panel().scrollIntoView({ block: 'start', behavior: 'smooth' });

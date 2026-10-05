@@ -1,6 +1,6 @@
 // Builds the static site into dist/ (or --out <dir>): copies public/, fills the {{placeholders}} in the HTML from
 // config/site.config.json, and writes a _headers file (security headers; Netlify and Cloudflare Pages read it).
-// Env overrides, used by tests: SUPABASE_URL, SUPABASE_KEY.
+// Env overrides, used by tests: SUPABASE_URL, SUPABASE_KEY, FORMSPREE_URL.
 import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,8 @@ export function build(out = join(ROOT, 'dist')) {
   delete config._readme;
   if (process.env.SUPABASE_URL) config.supabase.url = process.env.SUPABASE_URL;
   if (process.env.SUPABASE_KEY) config.supabase.publishableKey = process.env.SUPABASE_KEY;
+  if (process.env.FORMSPREE_URL) config.notifications.ownerEmail = { provider: 'formspree', endpoint: process.env.FORMSPREE_URL };
+  const mailOrigin = config.notifications.ownerEmail?.endpoint ? ' ' + new URL(config.notifications.ownerEmail.endpoint).origin : '';
   const biz = config.business;
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const vars = {
@@ -39,7 +41,7 @@ export function build(out = join(ROOT, 'dist')) {
 
   const csp = [
     "default-src 'self'", "script-src 'self'", "style-src 'self'", 'img-src \'self\' data: blob: https://*.supabase.co',
-    `connect-src 'self' ${new URL(config.supabase.url).origin}`, "frame-ancestors 'none'", "base-uri 'self'", "form-action 'self'"
+    `connect-src 'self' ${new URL(config.supabase.url).origin}${mailOrigin}`, "frame-ancestors 'none'", "base-uri 'self'", "form-action 'self'"
   ].join('; ');
   writeFileSync(join(out, '_headers'), `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: same-origin\n  X-Frame-Options: DENY\n/admin/*\n  X-Robots-Tag: noindex\n`);
   return out;

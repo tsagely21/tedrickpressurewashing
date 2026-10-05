@@ -19,6 +19,8 @@ const files = new Map(); // storage path -> Buffer
 
 process.env.SUPABASE_URL = `http://localhost:${PORT}`;
 process.env.SUPABASE_KEY = 'sb_publishable_test';
+process.env.FORMSPREE_URL = `http://localhost:${PORT}/formspree/f/test`;
+const formspree = []; // messages the site tried to email to the owner
 const serveStatic = staticHandler(build(OUT));
 
 const json = (res, status, body) => {
@@ -61,6 +63,13 @@ const server = createServer(async (req, res) => {
       return body.refresh_token === 'refresh' ? json(res, 200, session()) : json(res, 400, { msg: 'Invalid Refresh Token' });
     }
     if (path === '/auth/v1/logout') return json(res, 204);
+
+    // Test double for the Formspree endpoint, plus a way for the test to read what was sent
+    if (path === '/formspree/f/test' && req.method === 'POST') {
+      formspree.push(JSON.parse((await readBody(req)).toString() || '{}'));
+      return json(res, 200, { ok: true });
+    }
+    if (path === '/__formspree') return json(res, 200, formspree);
 
     // Storage: upload (anonymous allowed only when the database policy helper says so)
     if ((m = /^\/storage\/v1\/object\/quote-photos\/(.+)$/.exec(path)) && req.method === 'POST') {
