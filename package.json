@@ -13,6 +13,7 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.3.0"
+    "@electric-sql/pglite": "^0.3.0",
+    "axe-core": "^4.14.0"
   }
 }

@@ -1,7 +1,7 @@
 // Browser test: drives real Chrome through the customer + owner flows via the DevTools protocol.
 // Run with: node test/browser.mjs   (needs Chrome or Edge installed). Screenshots go to test/screenshots/.
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,7 +49,15 @@ async function overflowCheck(where) {
   const r = await ev(`(() => { const w = ${viewportWidth}; const bad = [...document.querySelectorAll("body *")].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.right > w + 1 && !e.closest("#gallery-track, dialog"); }).slice(0, 6).map((e) => e.tagName + "." + e.className + " right=" + Math.round(e.getBoundingClientRect().right)); return { scrollWidth: document.documentElement.scrollWidth, screenWidth: w, bad }; })()`);
   assert.ok(r.scrollWidth <= r.screenWidth + 1, `horizontal scroll on "${where}": ${JSON.stringify(r)}`);
 }
-const shot = async (name) => { await overflowCheck(name); writeFileSync(join(SHOTS, name + '.png'), Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).data, 'base64')); };
+// Accessibility: axe-core (WCAG 2.0/2.1 A + AA and best practices) runs on every screen that is screenshotted.
+const AXE = readFileSync(join(ROOT, 'node_modules', 'axe-core', 'axe.min.js'), 'utf8');
+const a11yFindings = [];
+async function a11yCheck(where) {
+  if (!(await ev('typeof window.axe'))  || (await ev('typeof window.axe')) === 'undefined') await ev(AXE);
+  const v = await ev('axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] } }).then((r) => r.violations.map((x) => ({ id: x.id, impact: x.impact, help: x.help, nodes: x.nodes.slice(0, 4).map((n) => n.target.join(" ") + " :: " + (n.any[0]?.message || n.all[0]?.message || n.none[0]?.message || "").slice(0, 120)) })))');
+  for (const x of v) a11yFindings.push({ where, ...x });
+}
+const shot = async (name) => { await overflowCheck(name); await a11yCheck(name); writeFileSync(join(SHOTS, name + '.png'), Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).data, 'base64')); };
 const goto = async (url) => { await send('Page.navigate', { url }); await sleep(300); await until('document.readyState === "complete"', 'load ' + url); };
 const key = (k, code) => send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code: code || k, windowsVirtualKeyCode: { Escape: 27, ArrowRight: 39, ArrowLeft: 37 }[k] }).then(() => send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: code || k }));
 
@@ -314,6 +322,14 @@ try {
   // The deliberate wrong-password attempt is the only expected failing request.
   const unexpected = errors.filter((e) => !/status of 400.*\/auth\/v1\/token/s.test(e));
   assert.deepEqual(unexpected, [], 'console errors: ' + unexpected.join(' | '));
+  const seen = new Set();
+  for (const f of a11yFindings) {
+    const k = f.id + f.nodes.join('|');
+    if (seen.has(k)) continue;
+    seen.add(k);
+    console.log(`  a11y [${f.impact}] ${f.id} on ${f.where}: ${f.help}\n    ${f.nodes.join('\n    ')}`);
+  }
+  assert.equal(seen.size, 0, 'accessibility violations found (see above)');
   console.log('\nAll browser checks passed. Screenshots in test/screenshots/');
 } catch (err) {
   console.error('\nFAILED:', err.message);

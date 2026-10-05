@@ -64,6 +64,10 @@ npm test         # database tests (access control, validation, overlaps) + a Chr
 The tests never touch your real Supabase project: they run `schema.sql` in a local Postgres and use a local stand-in for
 the Supabase API. Needs Chrome or Edge installed for the browser part.
 
+## Accessibility
+
+The site targets WCAG 2.1/2.2 AA: skip link, landmarks and heading order, keyboard operation everywhere (including the photo viewer, calendar and slider), visible focus, labelled form fields with announced errors, alt text on photos, reduced-motion and forced-colors support, and pinch-zoom is never blocked. `npm test` runs axe-core on every screen the browser test visits and fails on any violation. Automated checks catch only part of the problem: also try the site with a screen reader (NVDA on Windows, VoiceOver on iPhone) and browser zoom at 200%.
+
 ## Known limitations
 
 - **Owner emails** go through Formspree (`notifications.ownerEmail.endpoint` in the config): every new quote request, booking request and proposal reply

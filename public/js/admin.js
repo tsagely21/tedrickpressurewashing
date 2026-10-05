@@ -89,11 +89,12 @@ function draw() {
   if (CONFIG.scheduling.placeholder) setup.push(notice('warn', 'Setup: booking hours and time windows in config/site.config.json are placeholders. Enter your real hours and set "placeholder" to false.'));
   if (!Object.values(CONFIG.pricing.services).some((r) => typeof r.rate === 'number')) setup.push(notice('info', 'No pricing rates are configured, so customers see “Submit for a free personalized quote.” Add rates in config/site.config.json to show estimates.'));
 
-  const tab = (id, label, count) => h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === id), onClick: () => { S.tab = id; draw(); } }, label, count ? h('span', { class: 'count' }, count) : null);
+  const tab = (id, label, count) => h('button', { class: 'tab', type: 'button', 'aria-pressed': String(S.tab === id), onClick: () => { S.tab = id; draw(); } }, label, count ? h('span', { class: 'count' }, count) : null);
   const test = CATEGORIES.find((c) => c[0] === S.tab)?.[2];
   app.replaceChildren(
     ...[S.message, ...setup].filter(Boolean),
-    h('div', { class: 'tabs', role: 'tablist' },
+    h('h2', { class: 'sr-only' }, 'Requests and appointments'),
+    h('div', { class: 'tabs', role: 'group', 'aria-label': 'Request categories' },
       CATEGORIES.map(([id, label, fn]) => tab(id, label, id === 'all' ? 0 : d.quotes.filter(fn).length)),
       tab('blocks', 'Blocked dates', 0)),
     S.tab === 'blocks' ? blocksView() : S.tab === 'confirmed' ? confirmedView() : requestList(test || (() => true)));
@@ -113,9 +114,8 @@ function measure(i) {
   return `${Number(i.areaSqft).toLocaleString()} sq ft${i.length && i.width ? ` (${i.length} × ${i.width} ft)` : ''}`;
 }
 
-function deleteButton(q, cls, stop) {
-  return h('button', { class: cls, type: 'button', onClick: (e) => {
-    if (stop) { e.preventDefault(); e.stopPropagation(); }
+function deleteButton(q, cls) {
+  return h('button', { class: cls, type: 'button', 'aria-label': `Delete request ${q.ref} from ${q.contact.name}`, onClick: () => {
     if (confirm(`Permanently delete request ${q.ref} from ${q.contact.name}, including its photos and bookings?`)) act(async () => { await removePhotos(q.photos.map((p) => p.path)); await own('owner_delete_quote', { p_id: q.id }); }, 'Request deleted.');
   } }, 'Delete');
 }
@@ -125,37 +125,36 @@ function requestCard(q) {
   const c = q.contact;
   const open = (b && ['pending', 'proposed'].includes(b.status)) || S.openId === q.id;
   const est = estimate(CONFIG, q.items);
-  return h('details', { class: 'rq', id: `rq-${q.id}`, open: open || null },
+  return h('div', { class: 'rq-wrap' }, deleteButton(q, 'btn btn-danger btn-sm rq-delete', false), h('details', { class: 'rq', id: `rq-${q.id}`, open: open || null },
     h('summary', null,
       h('span', { class: 'who' }, c.name, ' · ', q.ref),
       h('span', { class: 'pills' },
         q.status === 'new' ? h('span', { class: 'status-pill small pill-new' }, 'New') : null,
-        b ? h('span', { class: `status-pill small ${b.status}` }, LABELS[b.status]) : h('span', { class: 'sub' }, 'No booking requested'),
-        deleteButton(q, 'btn btn-danger btn-sm', true)),
+        b ? h('span', { class: `status-pill small ${b.status}` }, LABELS[b.status]) : h('span', { class: 'sub' }, 'No booking requested')),
       h('span', { class: 'sub' }, `${new Date(q.createdAt).toLocaleString('en-US', { timeZone: CONFIG.scheduling.timezone, dateStyle: 'medium', timeStyle: 'short' })} · ${q.items.map((i) => svcLabel(i.id)).join(', ')}`)),
     h('div', { class: 'req-body' },
       h('div', { class: 'cols' },
-        h('div', { class: 'box' }, h('h4', null, 'Contact'),
+        h('div', { class: 'box' }, h('h3', null, 'Contact'),
           h('p', null, h('strong', null, c.name)),
           h('p', null, h('a', { href: `tel:${c.phone}` }, c.phone), c.email ? [' · ', h('a', { href: `mailto:${c.email}` }, c.email)] : null),
           h('p', null, `${c.address}, ${c.zip}`),
           h('p', null, `${q.propertyType === 'commercial' ? 'Commercial' : 'Residential'} · prefers ${{ phone: 'phone call', text: 'text message', email: 'email' }[c.preferred]}`)),
-        h('div', { class: 'box' }, h('h4', null, 'Estimate'),
+        h('div', { class: 'box' }, h('h3', null, 'Estimate'),
           est.available ? [h('p', null, h('strong', null, money(est.total, CONFIG.pricing.currency))), h('ul', null, est.lines.map((l) => h('li', null, `${l.label}: ${money(l.amount, CONFIG.pricing.currency)}`)))] : h('p', null, 'No dollar estimate (', est.reason === 'needs-assessment' ? 'needs assessment' : 'no rates configured', ').'),
           h('label', { class: 'label', for: `st-${q.id}` }, 'Quote status'),
           h('select', { id: `st-${q.id}`, disabled: b?.status === 'confirmed' ? true : null, onChange: (e) => act(() => own('owner_set_quote_status', { p_id: q.id, p_status: e.target.value }), 'Status updated.') },
             ['new', 'contacted', 'confirmed', 'closed'].map((s) => h('option', { value: s, selected: q.status === s }, s[0].toUpperCase() + s.slice(1)))),
           b?.status === 'confirmed' ? h('p', { class: 'muted' }, 'Has a confirmed appointment. Cancel the appointment to change this.') : null)),
-      h('div', { class: 'box' }, h('h4', null, 'Services & measurements'),
+      h('div', { class: 'box' }, h('h3', null, 'Services & measurements'),
         h('ul', null, q.items.map((i) => h('li', null, h('strong', null, svcLabel(i.id)), ` – ${measure(i)}; ${i.condition} dirt`,
           Object.entries(i.fields).length ? ` · ${svcDef(i.id).fields.filter((f) => i.fields[f.key]).map((f) => `${f.label.replace(' (optional)', '')}: ${i.fields[f.key]}`).join('; ')}` : '',
           i.notes ? h('div', { class: 'muted' }, `Notes: ${i.notes}`) : null))),
         q.notes ? h('p', null, h('strong', null, 'Customer notes: '), q.notes) : null),
-      q.photos.length ? h('div', { class: 'box' }, h('h4', null, `Photos (${q.photos.length})`),
+      q.photos.length ? h('div', { class: 'box' }, h('h3', null, `Photos (${q.photos.length})`),
         h('div', { class: 'photos' }, q.photos.map((p) => h('a', { href: S.urls[p.path], target: '_blank', rel: 'noopener' }, h('img', { src: S.urls[p.path], alt: `Customer photo ${p.name || ''}`, loading: 'lazy' }))))) : null,
-      q.bookings.length ? h('div', { class: 'box' }, h('h4', null, 'Booking'), q.bookings.map((bk, n) => bookingPanel(q, bk, n === 0))) : null,
-      q.status === 'confirmed' && latest(q)?.status !== 'confirmed' ? h('div', { class: 'box' }, h('h4', null, 'Schedule appointment'), h('p', { class: 'muted' }, 'Pick the date and time. It is blocked on the customer calendar as soon as you save.'), scheduleForm(q)) : null,
-      h('div', { class: 'actions' }, deleteButton(q, 'btn btn-danger btn-sm', false))));
+      q.bookings.length ? h('div', { class: 'box' }, h('h3', null, 'Booking'), q.bookings.map((bk, n) => bookingPanel(q, bk, n === 0))) : null,
+      q.status === 'confirmed' && latest(q)?.status !== 'confirmed' ? h('div', { class: 'box' }, h('h3', null, 'Schedule appointment'), h('p', { class: 'muted' }, 'Pick the date and time. It is blocked on the customer calendar as soon as you save.'), scheduleForm(q)) : null,
+    )));
 }
 
 function bookingPanel(q, b, latest) {

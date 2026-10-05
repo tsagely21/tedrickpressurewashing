@@ -4,11 +4,13 @@
 .login { max-width: 400px; margin: 60px auto; }
 .tabs { display: flex; gap: 6px; margin: 18px 0; flex-wrap: wrap; }
 .tab { border: 2px solid var(--line); background: #fff; border-radius: 999px; padding: 8px 18px; font: inherit; font-weight: 700; cursor: pointer; color: var(--navy); }
-.tab[aria-selected="true"] { background: var(--navy); color: var(--gold); border-color: var(--navy); }
+.tab[aria-pressed="true"] { background: var(--navy); color: var(--gold); border-color: var(--navy); }
 .tab .count { background: var(--gold); color: var(--navy); border-radius: 999px; padding: 0 8px; margin-left: 6px; font-size: 0.8rem; }
 .req-list { display: grid; gap: 12px; }
 .rq { background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
-.rq > summary { cursor: pointer; padding: 14px 18px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; list-style: none; }
+.rq-wrap { position: relative; }
+.rq-delete { position: absolute; top: 12px; right: 14px; z-index: 1; }
+.rq > summary { cursor: pointer; padding: 14px 140px 14px 18px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; list-style: none; }
 .rq > summary::-webkit-details-marker { display: none; }
 .rq .who { font-weight: 800; font-size: 1.05rem; }
 .rq .sub { color: var(--muted); font-size: 0.9rem; grid-column: 1; }
@@ -16,7 +18,7 @@
 .req-body { padding: 4px 18px 18px; border-top: 1px solid var(--line); display: grid; gap: 14px; }
 .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .box { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: #fbfcff; }
-.box h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+.box h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
 .box ul { margin: 0; padding-left: 18px; }
 .photos { display: flex; gap: 8px; flex-wrap: wrap; }
 .photos img { width: 110px; height: 110px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
@@ -41,3 +43,8 @@
 .resched { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 10px; }
 .resched > summary { cursor: pointer; font-weight: 700; color: var(--royal); }
 .sched-form { margin-top: 12px; max-width: 640px; }
+@media (max-width: 560px) {
+  .rq-wrap { display: flex; flex-direction: column-reverse; gap: 8px; }
+  .rq-delete { position: static; align-self: flex-end; }
+  .rq > summary { padding-right: 18px; }
+}

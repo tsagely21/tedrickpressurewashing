@@ -13,7 +13,7 @@ function placeholder(text, note) {
 function card(p, i) {
   const hasPhotos = befores(p).length || p.after.length;
   const cover = befores(p)[0] || p.after[0];
-  return h('button', { class: 'g-card', type: 'button', role: 'listitem', 'aria-label': `${p.label}: open before and after photos`, onClick: () => openViewer(i) },
+  return h('button', { class: 'g-card', type: 'button', onClick: () => openViewer(i) },
     h('div', { class: 'g-media' },
       cover ? h('img', { src: src(cover), alt: `${p.label} project photo`, loading: 'lazy' }) : placeholder('Photo coming soon', 'Placeholder – add in site.config.json'),
       h('div', { class: 'g-badges' }, hasPhotos ? h('span', { class: 'badge gold' }, 'Before & After') : h('span', { class: 'badge' }, 'Placeholder'))),
