@@ -146,13 +146,14 @@ function requestCard(q) {
       q.photos.length ? h('div', { class: 'box' }, h('h4', null, `Photos (${q.photos.length})`),
         h('div', { class: 'photos' }, q.photos.map((p) => h('a', { href: S.urls[p.path], target: '_blank', rel: 'noopener' }, h('img', { src: S.urls[p.path], alt: `Customer photo ${p.name || ''}`, loading: 'lazy' }))))) : null,
       q.bookings.length ? h('div', { class: 'box' }, h('h4', null, 'Booking'), q.bookings.map((bk, n) => bookingPanel(q, bk, n === 0))) : null,
+      q.status === 'confirmed' && latest(q)?.status !== 'confirmed' ? h('div', { class: 'box' }, h('h4', null, 'Schedule appointment'), h('p', { class: 'muted' }, 'Pick the date and time. It is blocked on the customer calendar as soon as you save.'), scheduleForm(q)) : null,
       h('div', { class: 'actions' }, h('button', { class: 'link-btn', type: 'button', onClick: () => confirm(`Permanently delete request ${q.ref} from ${c.name}, including its photos and bookings?`) && act(async () => { await removePhotos(q.photos.map((p) => p.path)); await own('owner_delete_quote', { p_id: q.id }); }, 'Request deleted.') }, 'Delete this request'))));
 }
 
 function bookingPanel(q, b, latest) {
   const w = winDef(b.requested.windowId);
   const head = h('p', null, h('span', { class: `status-pill small ${b.status}` }, LABELS[b.status]), ' ',
-    `Requested ${fmtDate(b.requested.date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}, ${w ? w.label.toLowerCase() : b.requested.windowId}`,
+    b.requested.windowId === 'custom' ? 'Scheduled by you' : `Requested ${fmtDate(b.requested.date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}, ${w ? w.label.toLowerCase() : b.requested.windowId}`,
     b.slot && b.status !== 'pending' ? ` · Scheduled: ${slotText(b.slot)}` : '');
   const extras = [b.note && h('p', { class: 'muted' }, `Customer note: ${b.note}`), b.ownerMessage && h('p', { class: 'muted' }, `Your message: ${b.ownerMessage}`)];
   if (!latest) return h('div', null, head, ...extras);
@@ -199,6 +200,34 @@ const confirmedRows = () => S.data.quotes
   .map((q) => ({ q, b: q.bookings[0] }))
   .sort((x, y) => (x.b.slot.date + String(x.b.slot.start).padStart(4, '0')).localeCompare(y.b.slot.date + String(y.b.slot.start).padStart(4, '0')));
 
+// Pick a date/time for a confirmed request (or move an existing appointment). Blocks that time for customers right away.
+function scheduleForm(q, b) {
+  const cur = b?.slot;
+  const uid = `${q.id}-${b ? 'r' : 's'}`;
+  const f = {
+    date: h('input', { id: `sd-${uid}`, type: 'date', min: S.data.today, required: true, value: cur?.date || '' }),
+    start: h('input', { id: `ss-${uid}`, type: 'time', value: fromMin(cur && !cur.fullDay ? cur.start : 480) }),
+    end: h('input', { id: `se-${uid}`, type: 'time', value: fromMin(cur && !cur.fullDay ? cur.end : 720) }),
+    full: h('input', { id: `sf-${uid}`, type: 'checkbox', checked: Boolean(cur?.fullDay) }),
+    msg: h('textarea', { id: `sm-${uid}`, maxlength: '500', placeholder: 'Optional note the customer will see on their status page' })
+  };
+  const sync = () => { f.start.disabled = f.end.disabled = f.full.checked; };
+  f.full.addEventListener('change', sync);
+  sync();
+  return h('form', { class: 'sched-form', onSubmit: (e) => {
+    e.preventDefault();
+    act(() => own('owner_schedule_appointment', { p_quote_id: q.id, p_slot: { date: f.date.value, start: f.start.value, end: f.end.value, fullDay: f.full.checked }, p_message: f.msg.value }),
+      b ? 'Appointment rescheduled. The new time is blocked on the customer calendar.' : 'Appointment scheduled. That time is now blocked on the customer calendar.');
+  } },
+    h('div', { class: 'row' },
+      h('div', { class: 'field' }, h('label', { for: f.date.id }, 'Date'), f.date),
+      h('div', { class: 'field' }, h('label', { for: f.start.id }, 'Start'), f.start),
+      h('div', { class: 'field' }, h('label', { for: f.end.id }, 'End'), f.end)),
+    h('label', { class: 'check' }, f.full, 'Full-day job (blocks the whole day)'),
+    h('div', { class: 'field' }, h('label', { for: f.msg.id }, 'Message to customer (optional)'), f.msg),
+    h('button', { class: 'btn btn-gold btn-sm', type: 'submit', disabled: S.busy ? true : null }, b ? 'Save new time' : 'Schedule appointment'));
+}
+
 function apptCard({ q, b }) {
   const c = q.contact;
   return h('article', { class: 'appt' },
@@ -213,7 +242,8 @@ function apptCard({ q, b }) {
       b.ownerMessage ? h('span', { class: 'muted' }, `Your message: ${b.ownerMessage}`) : null),
     h('div', { class: 'appt-actions' },
       h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onClick: () => { S.openId = q.id; S.tab = 'all'; draw(); } }, 'View full request'),
-      h('button', { class: 'btn btn-danger btn-sm', type: 'button', disabled: S.busy ? true : null, onClick: () => confirm(`Cancel ${c.name}'s confirmed appointment? The time will open up again.`) && act(() => own('owner_booking_action', { p_id: b.id, p_action: 'cancel', p_slot: null, p_message: null }), 'Appointment cancelled.') }, 'Cancel appointment')));
+      h('button', { class: 'btn btn-danger btn-sm', type: 'button', disabled: S.busy ? true : null, onClick: () => confirm(`Cancel ${c.name}'s confirmed appointment? The time will open up again.`) && act(() => own('owner_booking_action', { p_id: b.id, p_action: 'cancel', p_slot: null, p_message: null }), 'Appointment cancelled.') }, 'Cancel appointment')),
+    h('details', { class: 'resched' }, h('summary', null, 'Reschedule this appointment'), scheduleForm(q, b)));
 }
 
 function confirmedView() {

@@ -236,6 +236,55 @@ test('quote status: confirming an appointment marks the quote Confirmed; cancell
   await rejects(owner('owner_set_quote_status', { p_id: q.id, p_status: 'bogus' }), /invalid status/i);
 });
 
+test('owner can schedule and reschedule a confirmed request; the time is blocked on the customer calendar', async () => {
+  const [day1, day2] = [await openDay(9), await openDay(10)];
+  const slot = (date, extra = {}) => ({ date, start: '09:00', end: '11:00', ...extra });
+  const q = await newQuote();
+  const schedule = (id, s, msg = null) => owner('owner_schedule_appointment', { p_quote_id: id, p_slot: s, p_message: msg });
+  const windows = async (day) => (await anon('get_availability', { p_from: day, p_to: day })).days[day].windows;
+
+  // A request with no booking at all (e.g. marked Confirmed after a phone call)
+  await owner('owner_set_quote_status', { p_id: q.id, p_status: 'confirmed' });
+  const first = (await schedule(q.id, slot(day1), 'See you then')).booking;
+  assert.equal(first.status, 'confirmed');
+  assert.equal(first.slot.start, 540);
+  assert.equal(first.requested.windowId, 'custom');
+  assert.deepEqual(await windows(day1), { morning: false, afternoon: true, 'full-day': false });
+  const seen = (await anon('get_request', { p_token: q.token })).booking;
+  assert.equal(seen.status, 'confirmed', 'customer status link shows the confirmed time');
+  assert.equal(seen.ownerMessage, 'See you then');
+
+  // Reschedule: old time opens up, new time is blocked; the same booking row is reused
+  const moved = (await schedule(q.id, slot(day2, { start: '13:00', end: '15:00' }))).booking;
+  assert.equal(moved.id, first.id);
+  assert.deepEqual(await windows(day1), { morning: true, afternoon: true, 'full-day': true });
+  assert.deepEqual(await windows(day2), { morning: true, afternoon: false, 'full-day': false });
+  assert.equal((await owner('owner_overview')).appointments.filter((a) => a.ref === q.ref).length, 1);
+
+  // Full day, conflicts, validation, and permissions
+  const second = await newQuote();
+  await rejects(schedule(second.id, slot(day2, { start: '14:00', end: '16:00' })), /overlaps/i);
+  await rejects(schedule(second.id, slot(day2, { fullDay: true })), /overlaps/i);
+  await rejects(schedule(q.id, slot('2020-01-01')), /in the past/i);
+  await rejects(schedule(q.id, slot(day1, { start: '11:00', end: '10:00' })), /after the start/i);
+  await rejects(schedule(q.id, { date: 'nope' }), /valid date/i);
+  await rejects(schedule(randomUUID(), slot(day1)), /not found/i, 'PT404');
+  await rejects(other('owner_schedule_appointment', { p_quote_id: q.id, p_slot: slot(day1), p_message: null }), /Not authorized/);
+  await rejects(anon('owner_schedule_appointment', { p_quote_id: q.id, p_slot: slot(day1), p_message: null }), /permission denied/);
+  const full = (await schedule(second.id, slot(await openDay(11), { fullDay: true }))).booking;
+  assert.equal(full.slot.fullDay, true);
+  assert.equal(Object.values(await windows(full.slot.date)).some(Boolean), false);
+
+  // A pending customer request can be scheduled too (it is confirmed at the chosen time)
+  const pending = await newQuote();
+  const pb = (await book(pending.token, await openDay(12), 'morning')).booking;
+  const done = (await schedule(pending.id, slot(await openDay(13)))).booking;
+  assert.equal(done.id, pb.id);
+  assert.equal(done.status, 'confirmed');
+  const status = (await owner('owner_overview')).quotes.find((x) => x.id === pending.id).status;
+  assert.equal(status, 'confirmed');
+});
+
 test('owner overview contains requests, photos and appointments; deleting a quote removes its bookings', async () => {
   const o = await owner('owner_overview');
   assert.ok(o.quotes.length > 5 && o.appointments.length > 0);

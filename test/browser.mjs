@@ -46,6 +46,9 @@ const shot = async (name) => writeFileSync(join(SHOTS, name + '.png'), Buffer.fr
 const goto = async (url) => { await send('Page.navigate', { url }); await sleep(300); await until('document.readyState === "complete"', 'load ' + url); };
 const key = (k, code) => send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code: code || k, windowsVirtualKeyCode: { Escape: 27, ArrowRight: 39, ArrowLeft: 37 }[k] }).then(() => send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: code || k }));
 
+// What a customer would see: the public availability calendar.
+const openDays = () => ev('fetch("/rest/v1/rpc/get_availability", { method: "POST", headers: { apikey: "x", "Content-Type": "application/json" }, body: "{}" }).then((r) => r.json()).then((a) => a.days)');
+
 // Helpers executed inside the page
 const PAGE = `
 window.T = {
@@ -200,6 +203,22 @@ async function ownerFlow(label, ref) {
   for (const s of ['Pat Tester', '225-555-0142', '12 Oak St', 'Cancel appointment']) assert.ok(appt.includes(s), 'appointment card shows ' + s);
   await shot(`${label}-9b-confirmed-tab`);
 
+  // Reschedule: the customer calendar must free the old time and block the new one
+  const before = await openDays();
+  const oldDate = Object.entries(before).find(([, d]) => d.windows.morning === false)[0];
+  const newDate = Object.entries(before).filter(([d, x]) => x.open && d !== oldDate)[3][0];
+  await ev('document.querySelector(".resched").open = true');
+  await ev(`T.type(".resched input[id^=sd-]", "${newDate}"); T.type(".resched input[id^=ss-]", "09:00"); T.type(".resched input[id^=se-]", "11:00")`);
+  await shot(`${label}-9c-reschedule`);
+  await ev('document.querySelector(".resched form").requestSubmit()');
+  await until('document.querySelector(".notice.ok")', 'rescheduled', 10000);
+  const after = await openDays();
+  assert.equal(after[oldDate].windows.morning, true, 'old time is open again');
+  assert.deepEqual(after[newDate].windows, { morning: false, afternoon: true, 'full-day': false }, 'new time is blocked for customers');
+  await ev('T.clickText("Confirmed")');
+  await until('document.querySelector(".appt")', 'confirmed card after reschedule');
+  assert.match(await ev('document.querySelector(".appt").innerText'), /9:00 AM – 11:00 AM/);
+
   // The quote's status now reads Confirmed (and is locked while the appointment stands)
   await ev('T.clickText("View full request")');
   await until('document.querySelector("select[id^=st-]")', 'full request opens');
@@ -210,6 +229,28 @@ async function ownerFlow(label, ref) {
   await goto(BASE + '/');
   await until('document.querySelector(".status-pill.confirmed")', 'customer sees confirmed', 10000);
   await shot(`${label}-10-confirmed`);
+}
+
+// Owner marks a second request Confirmed (as after a phone call) and schedules a date for it.
+async function ownerSchedule(ref) {
+  console.log('\n== owner schedules a request that has no appointment yet ==');
+  await send('Emulation.setDeviceMetricsOverride', { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
+  await goto(BASE + '/admin/');
+  await ev(PAGE);
+  await until('document.querySelector(".rq")', 'dashboard loads with the saved login');
+  await ev('T.clickText("All requests")');
+  await until(`[...document.querySelectorAll(".rq")].some((d) => d.innerText.includes("${ref}"))`, 'second request listed');
+  await ev(`(() => { const s = [...document.querySelectorAll(".rq")].find((d) => d.innerText.includes("${ref}")).querySelector("select[id^=st-]"); s.value = "confirmed"; s.dispatchEvent(new Event("change")); })()`);
+  await until('document.querySelector(".notice.ok")', 'status set to confirmed');
+  await ev('T.clickText("Confirmed")');
+  await until('document.querySelector(".rq .sched-form")', 'schedule form shown for a confirmed request with no appointment');
+  const date = Object.entries(await openDays()).filter(([, d]) => d.open)[5][0];
+  await ev(`T.type(".rq .sched-form input[id^=sd-]", "${date}"); T.type(".rq .sched-form input[id^=ss-]", "14:00"); T.type(".rq .sched-form input[id^=se-]", "16:00")`);
+  await shot('desktop-9d-schedule');
+  await ev('document.querySelector(".rq .sched-form").requestSubmit()');
+  await until('document.querySelector(".notice.ok")', 'scheduled', 10000);
+  await until('document.querySelectorAll(".appt").length === 2', 'both appointments listed under Confirmed');
+  assert.equal((await openDays())[date].windows.afternoon, false, 'scheduled time is blocked for customers');
 }
 
 try {
@@ -229,7 +270,9 @@ try {
   const ref = await customerFlow('desktop', { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
   await ownerFlow('desktop', ref);
 
-  await customerFlow('mobile', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  const ref2 = await customerFlow('mobile', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  await ownerSchedule(ref2);
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   // No horizontal page scroll on mobile
   await goto(BASE + '/');
   assert.ok(await ev('document.documentElement.scrollWidth <= window.innerWidth + 1'), 'no horizontal overflow on mobile');

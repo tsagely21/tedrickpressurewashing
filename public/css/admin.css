@@ -37,3 +37,7 @@
 .appt-when strong { font-size: 1.05rem; }
 .appt-actions { display: flex; flex-direction: column; gap: 8px; }
 @media (max-width: 760px) { .appt { grid-template-columns: 1fr; } .appt-actions { flex-direction: row; flex-wrap: wrap; } }
+
+.resched { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 10px; }
+.resched > summary { cursor: pointer; font-weight: 700; color: var(--royal); }
+.sched-form { margin-top: 12px; max-width: 640px; }

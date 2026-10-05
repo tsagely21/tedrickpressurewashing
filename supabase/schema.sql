@@ -502,6 +502,60 @@ begin
   return jsonb_build_object('booking', booking_json(b));
 end $$;
 
+-- Owner picks (or changes) the date/time of a confirmed appointment. Works for a request that has no appointment yet
+-- (e.g. marked Confirmed after a phone call) and for rescheduling. The time is blocked for customers immediately.
+-- p_slot: {"date":"YYYY-MM-DD","start":"HH:MM","end":"HH:MM","fullDay":bool}
+create or replace function public.owner_schedule_appointment(p_quote_id uuid, p_slot jsonb, p_message text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  q quotes; b bookings; d date; s int; e int; f boolean := false;
+  today date := (now() at time zone biz_tz())::date;
+  msg text := nullif(left(trim(coalesce(p_message, '')), 500), '');
+  tre constant text := '^([01][0-9]|2[0-3]):[0-5][0-9]$';
+begin
+  perform require_owner();
+  perform pg_advisory_xact_lock(7001);
+  select * into q from quotes where id = p_quote_id;
+  if not found then perform fail('Request not found.', null, 'PT404'); end if;
+
+  if coalesce(p_slot ->> 'date', '') = '' then perform fail('Choose a valid date.'); end if;
+  begin
+    d := (p_slot ->> 'date')::date;
+  exception when others then
+    perform fail('Choose a valid date.');
+  end;
+  f := coalesce((case when jsonb_typeof(p_slot -> 'fullDay') = 'boolean' then (p_slot -> 'fullDay')::boolean end), false);
+  if not f then
+    if coalesce(p_slot ->> 'start', '') !~ tre or coalesce(p_slot ->> 'end', '') !~ tre then
+      perform fail('Choose a valid start and end time.');
+    end if;
+    s := to_min(p_slot ->> 'start');
+    e := to_min(p_slot ->> 'end');
+    if e <= s then perform fail('End time must be after the start time.'); end if;
+  else
+    s := 0; e := 1440;
+  end if;
+  if d < today then perform fail('That date is in the past.'); end if;
+
+  select * into b from bookings where quote_id = q.id and status in ('pending', 'proposed', 'confirmed') for update;
+  if not found then
+    insert into bookings (quote_id, status, req_date, req_window) values (q.id, 'pending', d, 'custom') returning * into b;
+  end if;
+
+  if b.status = 'confirmed' then
+    if slot_conflict(d, s, e, b.id) then perform fail('That time overlaps a confirmed appointment or a blocked time.'); end if;
+    begin
+      update bookings set slot_date = d, slot_start = s, slot_end = e, full_day = f,
+             owner_message = coalesce(msg, owner_message), updated_at = now() where id = b.id returning * into b;
+    exception when exclusion_violation then
+      perform fail('That time overlaps a confirmed appointment.');
+    end;
+    update quotes set status = 'confirmed' where id = q.id;
+    return jsonb_build_object('booking', booking_json(b));
+  end if;
+  return jsonb_build_object('booking', confirm_internal(b.id, d, s, e, f, msg));
+end $$;
+
 create or replace function public.owner_add_block(p_date date, p_all_day boolean, p_start text default null, p_end text default null, p_reason text default null)
 returns void language plpgsql security definer set search_path = public as $$
 declare s int; e int; tre constant text := '^([01][0-9]|2[0-3]):[0-5][0-9]$';
@@ -585,6 +639,6 @@ grant execute on function
 
 grant execute on function
   public.is_owner(), public.owner_overview(), public.owner_set_quote_status(uuid, text), public.owner_delete_quote(uuid),
-  public.owner_booking_action(uuid, text, jsonb, text), public.owner_add_block(date, boolean, text, text, text),
+  public.owner_booking_action(uuid, text, jsonb, text), public.owner_schedule_appointment(uuid, jsonb, text), public.owner_add_block(date, boolean, text, text, text),
   public.owner_remove_block(bigint), public.owner_sync_settings(jsonb)
   to authenticated;
