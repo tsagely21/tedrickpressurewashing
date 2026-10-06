@@ -19,7 +19,7 @@ export function build(out = join(ROOT, 'dist')) {
   const vars = {
     name: esc(biz.name), shortName: esc(biz.shortName), owner: esc(biz.owner), phone: esc(biz.phone),
     phoneTel: '+1' + biz.phone.replace(/\D/g, ''), tagline: esc(biz.tagline), payments: esc(biz.payments.join(', ')),
-    ministerDiscount: esc(biz.ministerDiscount), year: new Date().getFullYear(),
+    ministerDiscount: esc(biz.ministerDiscount), serviceArea: esc(biz.serviceArea), siteUrl: esc(config.siteUrl), year: new Date().getFullYear(),
     configJson: JSON.stringify(config).replace(/</g, '\\u003c')
   };
 
@@ -38,6 +38,11 @@ export function build(out = join(ROOT, 'dist')) {
     }
   };
   walk(out);
+
+  // Search engines: list the public pages, keep the owner dashboard out
+  const site = config.siteUrl.replace(/\/$/, '');
+  writeFileSync(join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${site}/</loc></url>\n  <url><loc>${site}/privacy/</loc></url>\n</urlset>\n`);
+  writeFileSync(join(out, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /admin/\n\nSitemap: ${site}/sitemap.xml\n`);
 
   const csp = [
     "default-src 'self'", "script-src 'self'", "style-src 'self'", 'img-src \'self\' data: blob: https://*.supabase.co',

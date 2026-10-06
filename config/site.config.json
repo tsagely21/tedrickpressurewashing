@@ -23,7 +23,8 @@
       "Cash App",
       "Debit/credit cards"
     ],
-    "ministerDiscount": "Ask about our minister's discount."
+    "ministerDiscount": "Ask about our minister's discount.",
+    "serviceArea": "Baton Rouge, Louisiana"
   },
   "pricing": {
     "currency": "USD",
@@ -489,5 +490,6 @@
       ],
       "compare": false
     }
-  ]
+  ],
+  "siteUrl": "https://tedrickpressurewash.com"
 }

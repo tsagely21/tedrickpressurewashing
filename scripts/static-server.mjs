@@ -35,8 +35,9 @@ export function staticHandler(dir) {
       res.writeHead(200, { ...headers, 'Content-Type': MIME[extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
       res.end(await readFile(file));
     } catch {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not found');
+      const page = join(dir, '404.html');
+      res.writeHead(404, { ...headers, 'Content-Type': existsSync(page) ? MIME['.html'] : 'text/plain' });
+      res.end(existsSync(page) ? readFileSync(page) : 'Not found');
     }
     return true;
   };

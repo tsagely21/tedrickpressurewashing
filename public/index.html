@@ -6,6 +6,18 @@
   <title>{{shortName}} | Soft Washing &amp; Pressure Washing</title>
   <meta name="description" content="Professional soft washing and pressure washing for homes, concrete surfaces, and commercial properties. Build a free quote online. Call {{phone}}.">
   <meta name="theme-color" content="#0b1437">
+  <link rel="canonical" href="{{siteUrl}}/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{name}}">
+  <meta property="og:title" content="{{shortName}} | Soft Washing &amp; Pressure Washing">
+  <meta property="og:description" content="Soft washing and pressure washing for homes and businesses in {{serviceArea}}. Build a free quote online or call {{phone}}.">
+  <meta property="og:url" content="{{siteUrl}}/">
+  <meta property="og:image" content="{{siteUrl}}/img/share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A home's roof before and after cleaning">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"HomeAndConstructionBusiness","name":"{{name}}","url":"{{siteUrl}}/","telephone":"{{phoneTel}}","image":"{{siteUrl}}/img/share.jpg","description":"Soft washing and pressure washing for homes, concrete surfaces and commercial properties.","areaServed":"{{serviceArea}}","founder":{"@type":"Person","name":"{{owner}}"}}</script>
   <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -43,6 +55,7 @@
           <ul class="chips" aria-label="Highlights">
             <li>Homes &amp; commercial</li>
             <li>Free personalized quotes</li>
+            <li>Serving {{serviceArea}}</li>
             <li>{{ministerDiscount}}</li>
           </ul>
         </div>
@@ -111,6 +124,7 @@
         <div class="section-head center"><h2 id="about-title">About {{shortName}}</h2></div>
         <div class="card about-card">
           <p><strong>{{owner}}</strong> is the owner of {{name}}, offering power washing and surface cleaning for homes, driveways, sidewalks, and commercial properties.</p>
+          <p>We serve {{serviceArea}}.</p>
           <p class="values"><span>Clean Homes</span><span>Clean Businesses</span><span>Stronger Communities</span></p>
           <p>Reasonable prices and great service. {{ministerDiscount}}</p>
         </div>
@@ -129,6 +143,8 @@
             <p>After you send a quote request, you can choose a preferred date and time window. That's a request only: it shows as "Pending owner approval." The owner can accept it, decline it, or propose a different time. You're confirmed only after acceptance, and a confirmed time is held for you.</p></details>
           <details><summary>Can the final quote change after inspection?</summary>
             <p>Yes. Online estimates depend on the measurements and details you provide. The final price is confirmed after we review your property, measurements, and surface condition.</p></details>
+          <details><summary>Where do you work?</summary>
+            <p>We serve {{serviceArea}}. If you are outside that area, call <a href="tel:{{phoneTel}}">{{phone}}</a> and ask.</p></details>
           <details><summary>What payment methods do you accept?</summary>
             <p>We accept {{payments}}. You don't pay anything to request a quote or a booking.</p></details>
         </div>
@@ -156,6 +172,7 @@
       </div>
       <div>
         <p><a class="footer-phone" href="tel:{{phoneTel}}">{{phone}}</a></p>
+        <p>Serving {{serviceArea}}</p>
         <p>Now accepting: {{payments}}</p>
       </div>
     </div>

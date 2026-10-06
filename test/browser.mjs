@@ -322,6 +322,16 @@ try {
   // The deliberate wrong-password attempt is the only expected failing request.
   const unexpected = errors.filter((e) => !/status of 400.*\/auth\/v1\/token/s.test(e));
   assert.deepEqual(unexpected, [], 'console errors: ' + unexpected.join(' | '));
+  // Search/sharing files and the not-found page
+  const robots = await ev('fetch("/robots.txt").then((r) => r.text())');
+  assert.match(robots, /Disallow: \/admin\//); assert.match(robots, /Sitemap: https:\/\/tedrickpressurewash\.com\/sitemap\.xml/);
+  assert.match(await ev('fetch("/sitemap.xml").then((r) => r.text())'), /tedrickpressurewash\.com\/privacy\//);
+  const lost = await ev('fetch("/no-such-page").then(async (r) => r.status + " " + (await r.text()))');
+  assert.match(lost, /^404 [\s\S]*can(?:&rsquo;|.)t find that page/, 'friendly 404 page');
+  await goto(BASE + '/');
+  assert.equal(await ev('document.querySelector("meta[property=\'og:image\']").content'), 'https://tedrickpressurewash.com/img/share.jpg');
+  assert.equal(await ev('JSON.parse(document.querySelector("script[type=\'application/ld+json\']").textContent).areaServed'), 'Baton Rouge, Louisiana');
+  assert.ok((await ev('document.body.innerText')).includes('Serving Baton Rouge, Louisiana'), 'service area shown');
   await goto(BASE + '/privacy/');
   assert.match(await ev('document.body.innerText'), /Privacy policy[\s\S]*Formspree[\s\S]*Accessibility/, 'privacy page content');
   await shot('privacy');
