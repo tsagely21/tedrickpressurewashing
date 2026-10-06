@@ -164,7 +164,7 @@ function pickerView(prev) {
     h('div', { class: 'field' }, h('label', { for: 'b-note' }, 'Notes for scheduling (optional)'), h('textarea', { id: 'b-note', maxlength: '500', onInput: (e) => { state.note = e.target.value; } }, state.note)),
     h('div', { class: 'nav-row' }, h('span'), h('div', { class: 'right' },
       h('button', { class: 'btn btn-gold btn-lg', type: 'button', disabled: !state.date || !state.windowId || state.busy, onClick: submit }, state.busy ? [spinner(), 'Sending…'] : 'Request This Time'))),
-    h('p', { class: 'muted' }, 'This is a request only. It will show as “Pending owner approval” until the owner accepts it.'));
+    h('p', { class: 'muted' }, 'This is a request only. It will show as “Pending owner approval” until the owner accepts it. ', h('a', { href: '/privacy/', target: '_blank', rel: 'noopener' }, 'Privacy policy (opens in a new tab)'), '.'));
   return out;
 }
 

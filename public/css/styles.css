@@ -351,3 +351,11 @@ fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
 .lightbox::backdrop { background: rgba(6, 12, 38, 0.92); }
 .lightbox img { max-width: 100%; max-height: calc(100dvh - 32px); object-fit: contain; border-radius: 8px; }
 .lightbox .close { position: absolute; top: 12px; right: 12px; z-index: 1; }
+
+/* Privacy / accessibility page */
+.legal h1 { margin-top: 8px; }
+.legal h2 { margin-top: 2em; padding-top: 0.6em; border-top: 1px solid var(--line); }
+.legal h3 { margin: 1.4em 0 0.3em; font-size: 1.1rem; }
+.legal ul { padding-left: 1.3em; }
+.legal li { margin-bottom: 0.4em; }
+.legal p, .legal li { max-width: 70ch; }

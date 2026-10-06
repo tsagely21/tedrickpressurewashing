@@ -322,6 +322,9 @@ try {
   // The deliberate wrong-password attempt is the only expected failing request.
   const unexpected = errors.filter((e) => !/status of 400.*\/auth\/v1\/token/s.test(e));
   assert.deepEqual(unexpected, [], 'console errors: ' + unexpected.join(' | '));
+  await goto(BASE + '/privacy/');
+  assert.match(await ev('document.body.innerText'), /Privacy policy[\s\S]*Formspree[\s\S]*Accessibility/, 'privacy page content');
+  await shot('privacy');
   const seen = new Set();
   for (const f of a11yFindings) {
     const k = f.id + f.nodes.join('|');

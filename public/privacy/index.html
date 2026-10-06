@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy &amp; Accessibility | {{shortName}}</title>
+  <meta name="description" content="How {{name}} handles the information you send in a quote or booking request, and our accessibility commitment.">
+  <meta name="theme-color" content="#0b1437">
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="{{name}} home">
+        <svg class="brand-mark" aria-hidden="true"><use href="#i-logo"/></svg>
+        <span class="brand-text"><strong>Tedrick</strong> Mobile Pressure Washing</span>
+      </a>
+      <a class="btn btn-gold btn-sm header-call" href="tel:{{phoneTel}}"><span>{{phone}}</span></a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="section">
+      <div class="container narrow legal">
+        <h1>Privacy &amp; Accessibility</h1>
+        <p class="muted">Last updated October 5, 2026</p>
+
+        <h2 id="privacy">Privacy policy</h2>
+        <p>This explains what {{name}} does with the information you send us through this website. In short: we use it to give you a quote and schedule your job, and nothing else.</p>
+
+        <h3>What we collect</h3>
+        <p>Only what you type or upload into our forms:</p>
+        <ul>
+          <li><strong>Quote request:</strong> your name, phone number, address and ZIP code, whether the property is residential or commercial, the services you want with their measurements and notes, how you prefer to be contacted, and your email address if you choose to give it.</li>
+          <li><strong>Photos:</strong> any photos of your property you choose to attach.</li>
+          <li><strong>Booking request:</strong> the date and time window you ask for, and any note you add.</li>
+        </ul>
+        <p>We do not use advertising, analytics or tracking tools on this site, and we do not set cookies.</p>
+
+        <h3>How we use it</h3>
+        <p>To prepare your quote, contact you about it, and schedule and carry out the work. We do not sell your information or share it for advertising.</p>
+
+        <h3>Who handles it for us</h3>
+        <ul>
+          <li><strong>Supabase</strong> stores your request, booking and photos in our private database. Only the owner can read them.</li>
+          <li><strong>Formspree</strong> sends us an email with a summary of each new request so we see it right away. That email includes your name, contact details, address, services and notes.</li>
+          <li><strong>Cloudflare</strong> delivers this website to your device, and like most web hosts it sees standard connection details such as your IP address. We also use IP addresses to limit repeated submissions and block spam.</li>
+        </ul>
+        <p>We may also share information if the law requires it.</p>
+
+        <h3>What is saved in your browser</h3>
+        <p>After you send a quote request, your browser saves a private link to your request so the booking section can show its status. It stays on your device, and you can clear it any time by clearing this site's data in your browser.</p>
+
+        <h3>How long we keep it, and your choices</h3>
+        <p>We keep your request while we are working with you and as long as we reasonably need it afterward. You can ask us to correct or delete your information, including your photos, by calling <a href="tel:{{phoneTel}}">{{phone}}</a>. We will delete it from our dashboard when you ask. Copies of the notification email may remain in our email account until we remove them.</p>
+
+        <h3>Children</h3>
+        <p>This site is for property owners and managers. It is not meant for children.</p>
+
+        <h3>Changes</h3>
+        <p>If we change this policy we will update the date at the top of this page.</p>
+
+        <h2 id="accessibility">Accessibility</h2>
+        <p>We want everyone to be able to use this website, including people who use screen readers, keyboards only, magnification or high-contrast settings. We build to the Web Content Accessibility Guidelines (WCAG) 2.1 AA and test every page automatically. Automated tests do not catch everything, so some parts may still be hard to use.</p>
+        <p>If you have trouble with any part of this site, call <a href="tel:{{phoneTel}}">{{phone}}</a> and we will take your quote or booking request by phone.</p>
+
+        <p><a class="btn btn-gold" href="/">Back to the home page</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-legal">&copy; {{year}} {{name}} · <a href="/">Home</a></div>
+  </footer>
+
+  <svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-logo" viewBox="0 0 32 32"><path d="M16 2l12 4v9c0 7-5 12.5-12 15C9 27.5 4 22 4 15V6z" fill="#111c4d" stroke="#f5c518" stroke-width="2" stroke-linejoin="round"/><path d="M14 8h4v4h4v4h-4v8h-4v-8h-4v-4h4z" fill="#f5c518"/></symbol>
+  </svg>
+</body>
+</html>

@@ -331,6 +331,7 @@ function step4() {
     reviewBlock('Contact', 3, [['Name', c.name], ['Phone', c.phone], ['Email', c.email || 'Not provided'], ['Address', `${c.address}, ${c.zip}`], ['Prefer', { phone: 'Phone call', text: 'Text message', email: 'Email' }[c.preferred]]]),
     estimateBlock(estimate(CONFIG, payloadItems())),
     h('p', { class: 'muted' }, 'No payment is required to request a quote.'),
+    h('p', { class: 'muted' }, 'By submitting, you agree we may contact you about your request. We use your details only to quote and schedule your job. ', h('a', { href: '/privacy/', target: '_blank', rel: 'noopener' }, 'Privacy policy (opens in a new tab)'), '.'),
     h('div', { class: 'nav-row' },
       h('button', { class: 'btn btn-ghost', type: 'button', onClick: () => go(3), disabled: state.submitting }, icon('left'), 'Back'),
       h('div', { class: 'right' }, h('button', { class: 'btn btn-gold btn-lg', type: 'button', id: 'submit-quote', disabled: state.submitting, onClick: submit }, state.submitting ? [spinner(), 'Sending…'] : 'Submit Quote Request')))
